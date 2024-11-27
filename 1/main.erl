@@ -79,8 +79,8 @@ insert_keys(Nodes, Keys) ->
             nil;
         _ ->
             case Nodes of
-                [{_, PID}|_] ->
-                    insert_remaining_keys(PID, RemainingKeys);
+                [Node|_] ->
+                    insert_remaining_keys(Node#node.pid, RemainingKeys);
                 [] ->
                     nil
             end
@@ -123,23 +123,41 @@ insert_keys_loop(Nodes, Keys) ->
 
 
 spawn_nodes(Ids) -> 
-    Nodes = spawn_nodes_recursive(Ids, nil),
+    Nodes = spawn_nodes_recursive(Ids),
     FirstNode = hd(Nodes),
     LastNode = last(Nodes),
+    set_node_predecessor_successor_recursive(Nodes, LastNode),
     LastNodePID = LastNode#node.pid,
-    FirstNodePID = FirstNode#node.pid,
     LastNodePID ! {set_successor, FirstNode},
-    FirstNodePID ! {set_predecessor, LastNode},
+    % LastNodePID ! {print},
     Nodes.
 
-spawn_nodes_recursive([Id | Rest], Last) -> 
+
+set_node_predecessor_successor_recursive(Nodes, Last) -> 
+    case Nodes of
+        [] ->
+            nil;
+        [Current|Next] ->
+            if
+                Next == [] ->
+                    Current#node.pid ! {set_predecessor, Last};
+                true ->
+                    Current#node.pid ! {set_successor, hd(Next)},
+                    Current#node.pid ! {set_predecessor, Last},
+                    % Current#node.pid ! {print},
+                    set_node_predecessor_successor_recursive(Next, Current)
+            end
+    end.
+
+
+spawn_nodes_recursive([Id | Rest]) -> 
     case Rest of
         [] ->
-            Node = #node{id = Id, pid = node:spawn_node(Id, self(),Last,nil)},
+            Node = #node{id = Id, pid = node:spawn_node(Id, self())},
             [Node];
-        [Next| _] ->
-            Node = #node{id = Id, pid = node:spawn_node(Id, self(),Last,Next)},
-            [Node | spawn_nodes_recursive(Rest,Id)]
+        [_| _] ->
+            Node = #node{id = Id, pid = node:spawn_node(Id, self())},
+            [Node | spawn_nodes_recursive(Rest)]
     end.
 
 hash_ids(Ids, M) ->
