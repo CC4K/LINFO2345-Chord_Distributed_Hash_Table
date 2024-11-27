@@ -17,4 +17,4 @@ deps
 _build/
 _checkouts/
 
-1/test.erl
+part1/test.erl
