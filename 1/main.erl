@@ -38,7 +38,7 @@ handle_msg(Msg, From, State) ->
 
 main(_) -> 
     application:start(crypto),
-    erlang:display("starting up control node"),
+    io:fwrite("starting up control node~n"),
 
     Ids = lists:seq(1, ?N),
 
@@ -58,16 +58,16 @@ main(_) ->
     },
     % send message to firtst node
     Node = last(Nodes),
-    io:format("Node: ~p~n", [Node]),
+    io:fwrite("Node: ~p~n", [Node]),
     
     case Node of
         {_,PID} ->
-            erlang:display("Sending make_csv to last node"),
+            io:fwrite("Sending make_csv to last node~n"),
             PID ! {make_csv}
     end,
 
     loop(InitialState),
-    io:format("DONE ~n", []).
+    io:fwrite("DONE~n", []).
 
 
 insert_keys(Nodes, Keys) -> 
@@ -90,7 +90,7 @@ insert_remaining_keys(Node,Keys) ->
             Node ! {add_key, Key},
             insert_remaining_keys(Node, NextKey);
         [] -> 
-            erlang:display("inserted_all_remaining_keys"),
+            io:fwrite("inserted_all_remaining_keys~n"),
             nil
     end.
 
@@ -113,14 +113,14 @@ insert_keys_loop(Nodes, Keys) ->
                     Keys
             end;
         [] -> 
-            erlang:display("inserted_all_keys"),
+            io:fwrite("inserted_all_keys~n"),
             nil
     end.
 
 
 
 spawn_nodes([]) -> 
-    erlang:display("spawned all nodes"),
+    io:fwrite("spawned all nodes~n"),
     [];
 spawn_nodes([Id | Rest]) -> 
     Node = {Id, node:spawn_node(Id)},

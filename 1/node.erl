@@ -35,12 +35,10 @@ get_keys(Pid) ->
 % csv format: key_identifier,contacted_node_identifier1|contacted_node_identifier2|contacted_node_identifier3...
 create_csv(State) ->
     FileName = "keysaa.csv",
-
-    io:format("All keys: ~p~n", [State#state.keys]).
-
-
-
-
+    Data = io_lib:format("~p|~p", [State#state.id, State#state.keys]), % Data = io_lib:format("~p,~p,~p|~p", [State#state.id, State#state.successor, State#state.predecessor, State#state.keys]),
+    {ok, File} = file:open(FileName, [write]),
+    file:write(File, Data),
+    file:close(File).
 
 
 start(Id, Keys) ->

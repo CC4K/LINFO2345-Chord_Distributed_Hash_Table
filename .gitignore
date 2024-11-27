@@ -16,3 +16,5 @@ deps
 .rebar3
 _build/
 _checkouts/
+
+1/test.erl

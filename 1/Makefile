@@ -1,7 +1,8 @@
 build:
-	erl -make
-clean:
-	rm -f ./*.beam
+	@erl -make
 
 run: build
-	escript main.erl
+	@escript main.erl
+
+clean:
+	rm -f *.beam
