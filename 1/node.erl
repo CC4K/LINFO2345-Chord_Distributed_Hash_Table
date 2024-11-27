@@ -1,10 +1,11 @@
 -module(node).
--export([spawn_node/1, add_key/2, get_keys/1,start/2]).
--record(state, {id, keys}).
+-export([spawn_node/4, add_key/2, get_keys/1,start/5]).
+-record(state, {id, keys, predecessor, successor, main}).
 
-spawn_node(Id) ->
-    % io:format("Spawned node: ~p~n", [Id]),
-    spawn(fun() -> start(Id, []) end).
+spawn_node(Id, Main, Predecessor, Successor) ->
+    io:format("Spawned node: ~p predecessor: ~p successor: ~p~n", [Id, Predecessor, Successor]),
+    
+    spawn(fun() -> start(Id, [], Main, Predecessor, Successor) end).
 
 loop(State) ->
     receive
@@ -16,7 +17,15 @@ loop(State) ->
             io:format("Node ~p: Making CSV~n", [State#state.id]),
             create_csv(State),
             io:format("Node ~p: Created CSV~n", [State#state.id]),
-            loop(State)
+            loop(State);
+        {set_predecessor, Predecessor} ->
+            io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, Predecessor, State#state.successor]),
+            NewState = State#state{predecessor = Predecessor},
+            loop(NewState);
+        {set_successor, Successor} ->
+            io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, State#state.predecessor, Successor]),
+            NewState = State#state{successor = Successor},
+            loop(NewState)
     end.
 
 
@@ -43,6 +52,13 @@ create_csv(State) ->
 
 
 
-start(Id, Keys) ->
-    InitialState = #state{id = Id, keys = Keys},
+
+start(Id, Keys, Main, Predecessor, Successor) ->
+    InitialState = #state{
+        id = Id, 
+        keys = Keys, 
+        main = Main, 
+        predecessor = Predecessor, 
+        successor = Successor
+    },
     loop(InitialState).
