@@ -1,6 +1,7 @@
 -module(node).
 -export([spawn_node/2, add_key/2, get_keys/1,start/3]).
 -record(state, {id, keys, predecessor, successor, main}).
+-record(node, {id, pid}).
 
 spawn_node(Id, Main) ->
     % io:format("Spawned node: ~p~n", [Id]),
@@ -46,7 +47,10 @@ get_keys(Pid) ->
 
 % csv format: key_identifier,contacted_node_identifier1|contacted_node_identifier2|contacted_node_identifier3...
 create_csv(State) ->    
-    Data = io_lib:format("~p|~p", [State#state.id, State#state.keys]), % Data = io_lib:format("~p,~p,~p|~p", [State#state.id, State#state.successor, State#state.predecessor, State#state.keys]),
+    SuccessorId = State#state.successor#node.id,
+    PredecessorId = State#state.predecessor#node.id,
+    
+    Data = io_lib:format("~p, ~p, ~p|~p", [State#state.id, PredecessorId, SuccessorId, State#state.keys]), % Data = io_lib:format("~p,~p,~p|~p", [State#state.id, State#state.successor, State#state.predecessor, State#state.keys]),
     FileName = io_lib:format("node_~p.csv", [State#state.id]),
     {ok, File} = file:open(FileName, [write]),
     file:write(File, Data),
