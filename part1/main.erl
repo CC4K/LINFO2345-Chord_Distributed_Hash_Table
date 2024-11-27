@@ -4,6 +4,8 @@
 -import(lists,[last/1]).
 
 -record(state, {nodes, keys}).
+-record(node, {id, pid}).
+
 
 -define(m, 16).
 -define(N, 10).
@@ -50,21 +52,22 @@ main(_) ->
     HashedKeys = hash_ids(File, ?m),
     Keys = lists:sort(HashedKeys),
     
+    
+    
     insert_keys(Nodes, Keys),
-
+    
     InitialState = #{
         nodes => Nodes,
         keys => Keys
     },
     % send message to firtst node
     Node = last(Nodes),
-    io:fwrite("Node: ~p~n", [Node]),
-    
-    case Node of
-        {_,PID} ->
-            io:fwrite("Sending make_csv to last node~n"),
-            PID ! {make_csv}
-    end,
+
+    io:format("Node: ~p~n", [Node]),
+
+    PID = Node#node.pid,
+    erlang:display("Sending make_csv to last node"),
+    PID ! {make_csv},
 
     loop(InitialState),
     io:fwrite("DONE~n", []).
@@ -77,8 +80,8 @@ insert_keys(Nodes, Keys) ->
             nil;
         _ ->
             case Nodes of
-                [{_, PID}|_] ->
-                    insert_remaining_keys(PID, RemainingKeys);
+                [Node|_] ->
+                    insert_remaining_keys(Node#node.pid, RemainingKeys);
                 [] ->
                     nil
             end
@@ -101,11 +104,13 @@ insert_keys_loop(Nodes, Keys) ->
     case Keys of
         [Key | NextKey] ->
             case Nodes of
-                [{ID, PID} | NextNode] ->
+                [Node | NextNode] ->
+                    PID = Node#node.pid,
+                    ID = Node#node.id,
                     % io:format("Node: ~p, Key: ~p~n", [ID, Key]),
                     if Key =< ID ->
                         PID ! {add_key, Key},
-                        insert_keys_loop([{ID, PID} | NextNode], NextKey);
+                        insert_keys_loop([Node | NextNode], NextKey);
                     true ->
                         insert_keys_loop(NextNode, Keys)
                     end;
@@ -118,13 +123,44 @@ insert_keys_loop(Nodes, Keys) ->
     end.
 
 
+spawn_nodes(Ids) -> 
+    Nodes = spawn_nodes_recursive(Ids),
+    FirstNode = hd(Nodes),
+    LastNode = last(Nodes),
+    set_node_predecessor_successor_recursive(Nodes, LastNode),
+    LastNodePID = LastNode#node.pid,
+    LastNodePID ! {set_successor, FirstNode},
+    % LastNodePID ! {print},
+    Nodes.
 
-spawn_nodes([]) -> 
-    io:fwrite("spawned all nodes~n"),
-    [];
-spawn_nodes([Id | Rest]) -> 
-    Node = {Id, node:spawn_node(Id)},
-    [Node | spawn_nodes(Rest)].
+
+
+set_node_predecessor_successor_recursive(Nodes, Last) -> 
+    case Nodes of
+        [] ->
+            nil;
+        [Current|Next] ->
+            if
+                Next == [] ->
+                    Current#node.pid ! {set_predecessor, Last};
+                true ->
+                    Current#node.pid ! {set_successor, hd(Next)},
+                    Current#node.pid ! {set_predecessor, Last},
+                    % Current#node.pid ! {print},
+                    set_node_predecessor_successor_recursive(Next, Current)
+            end
+    end.
+
+
+spawn_nodes_recursive([Id | Rest]) -> 
+    case Rest of
+        [] ->
+            Node = #node{id = Id, pid = node:spawn_node(Id, self())},
+            [Node];
+        [_| _] ->
+            Node = #node{id = Id, pid = node:spawn_node(Id, self())},
+            [Node | spawn_nodes_recursive(Rest)]
+    end.
 
 hash_ids(Ids, M) ->
     MaxValue = 1 bsl M, % 2^m
