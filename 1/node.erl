@@ -3,17 +3,19 @@
 -record(state, {id, keys}).
 
 spawn_node(Id) ->
-    io:format("Spawned node: ~p~n", [Id]),
+    % io:format("Spawned node: ~p~n", [Id]),
     spawn(fun() -> start(Id, []) end).
 
 loop(State) ->
     receive
         {add_key, Key} ->
-            io:format("Node ~p: Added key ~p~n", [State#state.id, Key]),
+            % io:format("Node ~p: Added key ~p~n", [State#state.id, Key]),
             NewState = add_key(Key,State),
             loop(NewState);
-        {make_csv, _} ->
+        {make_csv} ->
+            io:format("Node ~p: Making CSV~n", [State#state.id]),
             create_csv(State),
+            io:format("Node ~p: Created CSV~n", [State#state.id]),
             loop(State)
     end.
 
@@ -30,7 +32,7 @@ get_keys(Pid) ->
     end.
 
 create_csv(State) ->
-    FileName = "keys.csv",
+    FileName = "csv/keys.csv",
     Data = lists:map(fun(Key) -> Key end, State#state.keys),
     file:write_file(FileName, Data).
 

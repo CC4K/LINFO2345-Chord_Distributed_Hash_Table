@@ -1,6 +1,8 @@
 -module(main).
 -compile(export_all).
 -compile(nowarn_export_all).
+-import(lists,[last/1]).
+
 -record(state, {nodes, keys}).
 
 -define(m, 16).
@@ -54,6 +56,16 @@ main(_) ->
         nodes => Nodes,
         keys => Keys
     },
+    % send message to firtst node
+    Node = last(Nodes),
+    io:format("Node: ~p~n", [Node]),
+    
+    case Node of
+        [_,PID] ->
+            erlang:display("Sending make_csv to last node"),
+            PID ! {make_csv}
+    end,
+
     loop(InitialState),
     io:format("DONE ~n", []).
 
