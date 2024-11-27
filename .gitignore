@@ -3,6 +3,8 @@
 *.beam
 *.plt
 *.csv
+!keys.csv
+!key_queries.csv
 erl_crash.dump
 .concrete/DEV_MODE
 
