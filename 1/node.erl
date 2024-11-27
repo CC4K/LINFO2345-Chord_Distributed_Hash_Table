@@ -31,10 +31,17 @@ get_keys(Pid) ->
         {keys, Keys} -> Keys
     end.
 
+
+% csv format: key_identifier,contacted_node_identifier1|contacted_node_identifier2|contacted_node_identifier3...
 create_csv(State) ->
-    FileName = "csv/keys.csv",
-    Data = lists:map(fun(Key) -> Key end, State#state.keys),
-    file:write_file(FileName, Data).
+    FileName = "keysaa.csv",
+
+    io:format("All keys: ~p~n", [State#state.keys]).
+
+
+
+
+
 
 start(Id, Keys) ->
     InitialState = #state{id = Id, keys = Keys},

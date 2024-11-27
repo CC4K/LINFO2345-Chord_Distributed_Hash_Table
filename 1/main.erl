@@ -61,7 +61,7 @@ main(_) ->
     io:format("Node: ~p~n", [Node]),
     
     case Node of
-        [_,PID] ->
+        {_,PID} ->
             erlang:display("Sending make_csv to last node"),
             PID ! {make_csv}
     end,
