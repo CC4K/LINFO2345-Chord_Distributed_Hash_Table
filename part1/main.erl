@@ -1,11 +1,10 @@
 -module(main).
 -compile(export_all).
--compile(nowarn_export_all).
+-compile([nowarn_export_all, nowarn_unused_record]).
 -import(lists,[last/1]).
 
 -record(state, {nodes, keys}).
 -record(node, {id, pid}).
-
 
 -define(m, 16).
 -define(N, 10).
@@ -22,14 +21,6 @@ loop(State) ->
             ok
     end.
 
-
-update_state(Key, Value, State) -> 
-    NewState = map:put(Key, Value, State),
-    NewState.
-
-get_value(Key, State) ->
-    map:get(Key, State).
-
 handle_msg(Msg, From, State) -> 
     case Msg of 
         {get_keys, From} -> 
@@ -40,7 +31,7 @@ handle_msg(Msg, From, State) ->
 
 main(_) -> 
     application:start(crypto),
-    io:fwrite("starting up control node~n"),
+    io:fwrite("~nstarting up control node...~n"),
 
     Ids = lists:seq(1, ?N),
 
@@ -63,15 +54,24 @@ main(_) ->
     % send message to firtst node
     Node = last(Nodes),
 
-    io:format("Node: ~p~n", [Node]),
+    io:format("node id: ~p~nnode pid: ~p~n", [Node#node.id, Node#node.pid]),
 
     PID = Node#node.pid,
-    erlang:display("Sending make_csv to last node"),
+    io:fwrite("sending make_csv to last node~n"),
     PID ! {make_csv},
 
     loop(InitialState),
     io:fwrite("DONE~n", []).
 
+
+
+
+update_state(Key, Value, State) -> 
+    NewState = map:put(Key, Value, State),
+    NewState.
+
+get_value(Key, State) ->
+    map:get(Key, State).
 
 insert_keys(Nodes, Keys) -> 
     RemainingKeys = insert_keys_loop(Nodes, Keys),
@@ -93,7 +93,7 @@ insert_remaining_keys(Node,Keys) ->
             Node ! {add_key, Key},
             insert_remaining_keys(Node, NextKey);
         [] -> 
-            io:fwrite("inserted_all_remaining_keys~n"),
+            io:fwrite("inserted all remaining keys~n"),
             nil
     end.
 
@@ -122,7 +122,6 @@ insert_keys_loop(Nodes, Keys) ->
             nil
     end.
 
-
 spawn_nodes(Ids) -> 
     Nodes = spawn_nodes_recursive(Ids),
     FirstNode = hd(Nodes),
@@ -132,8 +131,6 @@ spawn_nodes(Ids) ->
     LastNodePID ! {set_successor, FirstNode},
     % LastNodePID ! {print},
     Nodes.
-
-
 
 set_node_predecessor_successor_recursive(Nodes, Last) -> 
     case Nodes of
@@ -150,7 +147,6 @@ set_node_predecessor_successor_recursive(Nodes, Last) ->
                     set_node_predecessor_successor_recursive(Next, Current)
             end
     end.
-
 
 spawn_nodes_recursive([Id | Rest]) -> 
     case Rest of
@@ -176,7 +172,6 @@ binary_to_int(Binary) ->
 
 sha1(Data) ->
     crypto:hash(sha, Data).
-
 
 load_csv(FileName) ->
     Lines = readlines(FileName),

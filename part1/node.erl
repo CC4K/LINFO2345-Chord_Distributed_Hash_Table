@@ -17,7 +17,7 @@ loop(State) ->
             loop(NewState);
         {make_csv} ->
             create_csv(State),
-            io:format("Node ~p: Created CSV~n", [State#state.id]),
+            io:format("node_~p.csv created~n", [State#state.id]),
             loop(State);
         {set_predecessor, Predecessor} ->
             % io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, Predecessor, State#state.successor]),
@@ -28,15 +28,15 @@ loop(State) ->
             NewState = State#state{successor = Successor},
             loop(NewState);
         {print} ->
-            io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, State#state.predecessor, State#state.successor]),
+            io:format("node: ~p predecessor: ~p successor: ~p~n", [State#state.id, State#state.predecessor, State#state.successor]),
             loop(State)
     end.
+
 
 
 add_key(Key, State) ->
     NewState = State#state{keys = [Key|State#state.keys]},
     NewState.
-
 
 get_keys(Pid) ->
     Pid ! {get_keys, self()},
@@ -44,20 +44,15 @@ get_keys(Pid) ->
         {keys, Keys} -> Keys
     end.
 
-
-% csv format: key_identifier,contacted_node_identifier1|contacted_node_identifier2|contacted_node_identifier3...
 create_csv(State) ->    
     SuccessorId = State#state.successor#node.id,
     PredecessorId = State#state.predecessor#node.id,
-    
-    Data = io_lib:format("~p, ~p, ~p|~p", [State#state.id, PredecessorId, SuccessorId, State#state.keys]), % Data = io_lib:format("~p,~p,~p|~p", [State#state.id, State#state.successor, State#state.predecessor, State#state.keys]),
-    FileName = io_lib:format("node_~p.csv", [State#state.id]),
+    NodeId = State#state.id,
+    Data = io_lib:format("~p,~p,~p|~p", [NodeId, PredecessorId, SuccessorId, State#state.keys]), % Data = io_lib:format("~p,~p,~p|~p", [State#state.id, State#state.successor, State#state.predecessor, State#state.keys]),
+    FileName = io_lib:format("node_~p.csv", [NodeId]),
     {ok, File} = file:open(FileName, [write]),
     file:write(File, Data),
     file:close(File).
-
-
-
 
 start(Id, Keys, Main) ->
     InitialState = #state{
