@@ -44,12 +44,13 @@ get_keys(Pid) ->
         {keys, Keys} -> Keys
     end.
 
-create_csv(State) ->    
-    SuccessorId = State#state.successor#node.id,
-    PredecessorId = State#state.predecessor#node.id,
-    NodeId = State#state.id,
-    Data = io_lib:format("~p,~p,~p|~p", [NodeId, PredecessorId, SuccessorId, State#state.keys]), % Data = io_lib:format("~p,~p,~p|~p", [State#state.id, State#state.successor, State#state.predecessor, State#state.keys]),
-    FileName = io_lib:format("node_~p.csv", [NodeId]),
+create_csv(State) ->
+    SuccessorId = io_lib:format("~.16B", [State#state.successor#node.id]),
+    PredecessorId = io_lib:format("~.16B", [State#state.predecessor#node.id]),
+    NodeId = io_lib:format("~.16B", [State#state.id]),
+    Keys = lists:map(fun(Number) -> io_lib:format("~.16B", [Number]) end, State#state.keys),
+    Data = io_lib:format("~p,~p,~p|~p", [NodeId, PredecessorId, SuccessorId, Keys]),
+    FileName = io_lib:format("~p.csv", [State#state.id]), % TODO : passer l'id non hashé
     {ok, File} = file:open(FileName, [write]),
     file:write(File, Data),
     file:close(File).
