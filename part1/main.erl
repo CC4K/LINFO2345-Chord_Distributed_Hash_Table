@@ -3,8 +3,7 @@
 -compile([nowarn_export_all, nowarn_unused_record]).
 -import(lists,[last/1]).
 
--record(state, {nodes, keys}).
--record(node, {id, pid}).
+-record(node, {id, non_hashed_id, pid}).
 
 -define(m, 16).
 -define(N, 10).
@@ -33,15 +32,14 @@ main(_) ->
     application:start(crypto),
     io:fwrite("~nstarting up control node...~n"),
 
-    Ids = lists:seq(1, ?N),
-
-    HashedIds = hash_ids(Ids, ?m),
-    Node_IDs = lists:sort(HashedIds),
-    Nodes = spawn_nodes(Node_IDs),
+    Nodes = create_nodes(?N),
 
     File = load_csv("keys.csv"),
     HashedKeys = hash_ids(File, ?m),
     Keys = lists:sort(HashedKeys),
+    % io:fwrite("Keys: ~p~n", [Keys]),
+
+    
     
     
     
@@ -54,14 +52,22 @@ main(_) ->
     % send message to firtst node
     Node = last(Nodes),
 
-    io:format("node id: ~p~nnode pid: ~p~n", [Node#node.id, Node#node.pid]),
-
     PID = Node#node.pid,
     io:fwrite("sending make_csv to last node~n"),
     PID ! {make_csv},
 
     loop(InitialState),
     io:fwrite("DONE~n", []).
+
+create_nodes(Count) ->
+    Ids = lists:seq(1, Count),
+    HashedIds = hash_ids(Ids, ?m),
+    Normal_and_hashed_ids = lists:zip(Ids, HashedIds),
+    Node_IDs = lists:sort(fun({_, A}, {_, B}) -> A =< B end, Normal_and_hashed_ids),
+    % io:fwrite("Node IDs: ~p~n", [Node_IDs]),
+    
+    Nodes = spawn_nodes(Node_IDs),
+    Nodes.
 
 
 
@@ -93,7 +99,6 @@ insert_remaining_keys(Node,Keys) ->
             Node ! {add_key, Key},
             insert_remaining_keys(Node, NextKey);
         [] -> 
-            io:fwrite("inserted all remaining keys~n"),
             nil
     end.
 
@@ -148,13 +153,15 @@ set_node_predecessor_successor_recursive(Nodes, Last) ->
             end
     end.
 
-spawn_nodes_recursive([Id | Rest]) -> 
+spawn_nodes_recursive([CurrNode | Rest]) -> 
     case Rest of
         [] ->
-            Node = #node{id = Id, pid = node:spawn_node(Id, self())},
+            {NormalID, HashedID} = CurrNode,
+            Node = #node{id = HashedID, non_hashed_id = NormalID  ,pid = node:spawn_node(HashedID, NormalID , self())},
             [Node];
         [_| _] ->
-            Node = #node{id = Id, pid = node:spawn_node(Id, self())},
+            {NormalID, HashedID} = CurrNode,
+            Node = #node{id = HashedID, non_hashed_id = NormalID  ,pid = node:spawn_node(HashedID, NormalID , self())},
             [Node | spawn_nodes_recursive(Rest)]
     end.
 
