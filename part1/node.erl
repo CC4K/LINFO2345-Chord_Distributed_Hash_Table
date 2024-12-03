@@ -50,6 +50,7 @@ create_csv(State) ->
     NodeId = io_lib:format("~.16B", [State#state.id]),
     Keys = lists:map(fun(Number) -> io_lib:format("~.16B", [Number]) end, State#state.keys),
     Data = io_lib:format("~p,~p,~p|~p", [NodeId, PredecessorId, SuccessorId, Keys]),
+    % io:fwrite("~p/~p,~p,~p|~p~n", [NodeId, State#state.id, State#state.predecessor#node.id, State#state.successor#node.id, State#state.keys]),
     FileName = io_lib:format("~p.csv", [State#state.non_hashed_id]),
     {ok, File} = file:open(FileName, [write]),
     file:write(File, Data),
