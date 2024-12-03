@@ -48,7 +48,11 @@ main(_) ->
     % send message to firtst node
     % Node = last(Nodes),
 
-    create_csvs(Nodes),
+    % creating directory accordingly to the number of nodes
+    NameDir = io_lib:format("dht_~p", [?N]),
+    file:make_dir(NameDir),
+    % saving data in files
+    create_csvs(Nodes, NameDir),
     % PID = Node#node.pid,
     % io:fwrite("sending make_csv to last node~n"),
     % PID ! {make_csv},
@@ -56,6 +60,11 @@ main(_) ->
     loop(InitialState),
     io:fwrite("DONE~n", []).
     
+
+
+
+
+
 
 create_nodes(Ids) ->
     HashedIds = hash_ids(Ids, ?m),
@@ -65,8 +74,8 @@ create_nodes(Ids) ->
     Nodes = node_creation:spawn_nodes(Node_IDs),
     Nodes.
 
-create_csvs(Nodes) -> 
-    lists:foreach(fun(Node) -> Node#node.pid ! {make_csv} end, Nodes),
+create_csvs(Nodes, NameDir) -> 
+    lists:foreach(fun(Node) -> Node#node.pid ! {make_csv, NameDir} end, Nodes),
     io:fwrite("created all csvs~n").
 
 update_state(Key, Value, State) -> 
