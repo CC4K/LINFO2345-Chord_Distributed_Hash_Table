@@ -61,14 +61,14 @@ main(_) ->
     io:fwrite("DONE~n", []).
 
 
-    finger(N, K, M) ->
-        (N + (trunc(math:pow(2, K-1)) rem trunc(math:pow(2, M)))).
+finger(N, K, M) ->
+    (N + (trunc(math:pow(2, K-1)) rem trunc(math:pow(2, M)))).
+
+% fingertable(1) for [2, 3, 5, 9,...]
+fingertable(N) ->
+    M = 16,
+    lists:map(fun(K) -> finger(N, K, M) end, lists:seq(1, 16)).
     
-    % fingertable(1) for [2, 3, 5, 9,...]
-    fingertable(N) ->
-        M = 16,
-        lists:map(fun(K) -> finger(N, K, M) end, lists:seq(1, 16)).
-        
 
 create_nodes(Count) ->
     Ids = lists:seq(1, Count),
