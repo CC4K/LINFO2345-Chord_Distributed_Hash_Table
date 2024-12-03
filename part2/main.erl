@@ -113,80 +113,51 @@ get_value(Key, State) ->
     map:get(Key, State).
 
 insert_keys(Nodes, Keys) -> 
-    RemainingKeys = insert_keys_loop(Nodes, Keys),
+    InsertRemainingKeys = fun InsertRemainingKeys(Node,KeysLeft) ->
+        case KeysLeft of
+            [Key | NextKey] ->
+                Node ! {add_key, Key},
+                InsertRemainingKeys(Node, NextKey);
+            [] -> 
+                nil
+        end
+    end,
+    InsertKeysLoop = fun InsertKeysLoop(NodesLeft, KeysLeft) ->
+        case KeysLeft of
+            [Key | NextKey] ->
+                case NodesLeft of
+                    [Node | NextNode] ->
+                        PID = Node#node.pid,
+                        ID = Node#node.id,
+                        if Key =< ID ->
+                            PID ! {add_key, Key},
+                            InsertKeysLoop([Node | NextNode], NextKey);
+                        true ->
+                            InsertKeysLoop(NextNode, KeysLeft)
+                        end;
+                    [] ->
+                        KeysLeft
+                end;
+            [] -> 
+                io:fwrite("inserted_all_keys~n"),
+                nil
+        end
+    end,
+    RemainingKeys = InsertKeysLoop(Nodes, Keys),
     case RemainingKeys of
         nil ->
             nil;
         _ ->
             case Nodes of
                 [Node|_] ->
-                    insert_remaining_keys(Node#node.pid, RemainingKeys);
+                    InsertRemainingKeys(Node#node.pid, RemainingKeys);
                 [] ->
                     nil
             end
     end.
 
-insert_remaining_keys(Node,Keys) ->
-    case Keys of
-        [Key | NextKey] ->
-            Node ! {add_key, Key},
-            insert_remaining_keys(Node, NextKey);
-        [] -> 
-            nil
-    end.
-
-insert_keys_loop(Nodes, Keys) ->
-    % [{ID, PID} | NextNode]
-    % [Key | NextKey]
-    
-    case Keys of
-        [Key | NextKey] ->
-            case Nodes of
-                [Node | NextNode] ->
-                    PID = Node#node.pid,
-                    ID = Node#node.id,
-                    % io:format("Node: ~p, Key: ~p~n", [ID, Key]),
-                    if Key =< ID ->
-                        PID ! {add_key, Key},
-                        insert_keys_loop([Node | NextNode], NextKey);
-                    true ->
-                        insert_keys_loop(NextNode, Keys)
-                    end;
-                [] ->
-                    Keys
-            end;
-        [] -> 
-            io:fwrite("inserted_all_keys~n"),
-            nil
-    end.
-
 spawn_nodes(Ids) -> 
-    Nodes = spawn_nodes_recursive(Ids),
-    FirstNode = hd(Nodes),
-    LastNode = last(Nodes),
-    set_node_predecessor_successor_recursive(Nodes, LastNode),
-    LastNodePID = LastNode#node.pid,
-    LastNodePID ! {set_successor, FirstNode},
-    % LastNodePID ! {print},
-    Nodes.
-
-set_node_predecessor_successor_recursive(Nodes, Last) -> 
-    case Nodes of
-        [] ->
-            nil;
-        [Current|Next] ->
-            if
-                Next == [] ->
-                    Current#node.pid ! {set_predecessor, Last};
-                true ->
-                    Current#node.pid ! {set_successor, hd(Next)},
-                    Current#node.pid ! {set_predecessor, Last},
-                    % Current#node.pid ! {print},
-                    set_node_predecessor_successor_recursive(Next, Current)
-            end
-    end.
-
-spawn_nodes_recursive([CurrNode | Rest]) -> 
+    SpawnNodesRecursive = fun SpawnNodesRecursive([CurrNode | Rest]) -> 
     case Rest of
         [] ->
             {NormalID, HashedID} = CurrNode,
@@ -195,23 +166,49 @@ spawn_nodes_recursive([CurrNode | Rest]) ->
         [_| _] ->
             {NormalID, HashedID} = CurrNode,
             Node = #node{id = HashedID, non_hashed_id = NormalID  ,pid = node:spawn_node(HashedID, NormalID , self())},
-            [Node | spawn_nodes_recursive(Rest)]
-    end.
+            [Node | SpawnNodesRecursive(Rest)]
+    end
+    end,
+    SetNodePredecessor = fun SetNodePredecessor(Nodes, Last) -> 
+        case Nodes of
+            [] ->
+                nil;
+            [Current|Next] ->
+                if
+                    Next == [] ->
+                        Current#node.pid ! {set_predecessor, Last};
+                    true ->
+                        Current#node.pid ! {set_successor, hd(Next)},
+                        Current#node.pid ! {set_predecessor, Last},
+                        % Current#node.pid ! {print},
+                        SetNodePredecessor(Next, Current)
+                end
+        end
+    end,
+    Nodes = SpawnNodesRecursive(Ids),
+    FirstNode = hd(Nodes),
+    LastNode = last(Nodes),
+    SetNodePredecessor(Nodes, LastNode),
+    LastNodePID = LastNode#node.pid,
+    LastNodePID ! {set_successor, FirstNode},
+    % LastNodePID ! {print},
+    Nodes.
+
+
+
 
 hash_ids(Ids, M) ->
+    BinaryToInt = fun(Binary) ->
+        lists:foldl(fun(Byte, Acc) -> (Acc bsl 8) bor Byte end, 0, binary:bin_to_list(Binary))
+    end,
     MaxValue = 1 bsl M, % 2^m
     lists:map(fun(Id) ->
         Hash = crypto:hash(sha, erlang:term_to_binary(Id)),
-        IntegerHash = binary_to_int(Hash),
+        IntegerHash = BinaryToInt(Hash),
         %% Map to range 1 to 2^m
         (IntegerHash rem MaxValue) + 1
     end, Ids).
 
-binary_to_int(Binary) ->
-    lists:foldl(fun(Byte, Acc) -> (Acc bsl 8) bor Byte end, 0, binary:bin_to_list(Binary)).
-
-sha1(Data) ->
-    crypto:hash(sha, Data).
 
 load_csv(FileName) ->
     Lines = readlines(FileName),
