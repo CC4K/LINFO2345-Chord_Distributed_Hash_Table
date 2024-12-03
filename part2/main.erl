@@ -6,7 +6,7 @@
 -record(node, {id, non_hashed_id, pid, fingertable}).
 
 -define(m, 16). %Number of bits in the hash & max entries in finger table
--define(N, 16). %Number of nodes in the ring
+-define(N, 100). %Number of nodes in the ring
 
 
 
@@ -32,7 +32,7 @@ main(_) ->
     io:fwrite("~nstarting up control node...~n"),
 
     Nodes = create_nodes(?N),
-    create_finger_tables(Nodes),
+    create_finger_tables(Nodes,Nodes),
     File = load_csv("keys.csv"),
     HashedKeys = hash_ids(File, ?m),
     Keys = lists:sort(HashedKeys),
@@ -56,18 +56,29 @@ main(_) ->
     io:fwrite("DONE~n", []).
 
 
-create_finger_tables(Nodes)->
+create_finger_tables(NodesLeft,AllNodes)->
     erlang:display("a"),
-    case Nodes of
+    case NodesLeft of
         [] ->
             nil;
-        [Head|Next] ->
+        [Head | Next] ->
             erlang:display("b"),
-            IndexTable = fingertable_values(Head#node.id),
-            io:fwrite("IndexTable: ~p~n", [IndexTable]),
-            
-            % create_finger_table(IndexTable, Nodes, 1),
-            create_finger_tables([Next])
+            IndexTable = fingertable_values(Head),
+            FingerTable = lists:map(fun(Value) -> get_next(Value, AllNodes) end, IndexTable),
+            io:fwrite("FingerTable: ~p~n", [FingerTable]),
+            create_finger_tables(Next,AllNodes)
+    end.
+
+get_next(Value, Nodes) ->
+    case Nodes of
+        [Node | Next] ->
+            if Value =< Node#node.id -> 
+                Node;
+            true -> 
+                get_next(Value, Next)
+            end;
+        [] -> 
+            hd(Nodes)
     end.
 
 
@@ -75,13 +86,10 @@ finger_value(N, K, M) ->
     (N + (trunc(math:pow(2, K-1)) rem trunc(math:pow(2, M)))).
 
 % fingertable(1) for [2, 3, 5, 9,...]
-fingertable_values(N) ->
+fingertable_values(Node) ->
+    N = Node#node.id,
     M = 16,
     lists:map(fun(K) -> finger_value(N, K, M) end, lists:seq(1, 16)).
-
-create_finger_table(Node, Nodes,I) ->
-    
-    nil.
 
 
 create_nodes(Count) ->
