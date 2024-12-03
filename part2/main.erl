@@ -6,7 +6,7 @@
 -record(node, {id, non_hashed_id, pid}).
 
 -define(m, 16). %Number of bits in the hash & max entries in finger table
--define(N, 100). %Number of nodes in the ring
+-define(N, 10). %Number of nodes in the ring
 
 
 
@@ -74,15 +74,16 @@ create_finger_tables(NodesLeft,AllNodes)->
             nil;
         [Head | Next] ->
             IndexTable = fingertable_values(Head),
+            io:fwrite("IndexTable: ~p~n", [IndexTable]),
             FingerTable = lists:map(fun(Value) -> GetNext(Value, AllNodes) end, IndexTable),
             Head#node.pid ! {set_finger_table, FingerTable},
-            % io:fwrite("FingerTable: ~p~n", [FingerTable]),
+            io:fwrite("FingerTable: ~p~n", [FingerTable]),
             create_finger_tables(Next,AllNodes)
     end.
 
 fingertable_values(Node) ->
     FingerValue = fun(N, K, M) ->
-        (N + (trunc(math:pow(2, K-1)) rem trunc(math:pow(2, M))))
+        ((N + (trunc(math:pow(2, K-1)))) rem (trunc(math:pow(2, M))))
     end,
 
     N = Node#node.id,

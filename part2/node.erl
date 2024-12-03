@@ -29,7 +29,7 @@ loop(State) ->
             loop(NewState);
         {set_finger_table, FingerTable} ->
             NewState = State#state{fingertable = FingerTable},
-            io:format("Node: ~p finger table: ~p~n", [State#state.id, FingerTable]),
+            % io:format("Node: ~p finger table: ~p~n", [State#state.id, FingerTable]),
             loop(NewState);
         {print} ->
             io:format("node: ~p predecessor: ~p successor: ~p ~n", [State#state.id, State#state.predecessor, State#state.successor]),
