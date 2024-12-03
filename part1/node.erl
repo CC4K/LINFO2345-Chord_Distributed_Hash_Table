@@ -17,7 +17,7 @@ loop(State) ->
             loop(NewState);
         {make_csv} ->
             create_csv(State),
-            io:format("~p.csv created~n", [State#state.non_hashed_id]),
+            % io:format("~p.csv created~n", [State#state.non_hashed_id]),
             loop(State);
         {set_predecessor, Predecessor} ->
             % io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, Predecessor, State#state.successor]),

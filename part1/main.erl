@@ -40,7 +40,7 @@ main(_) ->
     % io:fwrite("Keys: ~p~n", [Keys]),
 
     
-    
+
     
     
     insert_keys(Nodes, Keys),
@@ -50,11 +50,12 @@ main(_) ->
         keys => Keys
     },
     % send message to firtst node
-    Node = last(Nodes),
+    % Node = last(Nodes),
 
-    PID = Node#node.pid,
-    io:fwrite("sending make_csv to last node~n"),
-    PID ! {make_csv},
+    create_csvs(Nodes),
+    % PID = Node#node.pid,
+    % io:fwrite("sending make_csv to last node~n"),
+    % PID ! {make_csv},
 
     loop(InitialState),
     io:fwrite("DONE~n", []).
@@ -69,8 +70,9 @@ create_nodes(Count) ->
     Nodes = spawn_nodes(Node_IDs),
     Nodes.
 
-
-
+create_csvs(Nodes) -> 
+    lists:foreach(fun(Node) -> Node#node.pid ! {make_csv} end, Nodes),
+    io:fwrite("created all csvs~n").
 
 update_state(Key, Value, State) -> 
     NewState = map:put(Key, Value, State),
