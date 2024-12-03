@@ -1,7 +1,7 @@
 -module(node).
 -export([spawn_node/3, add_key/2, get_keys/1,start/4]).
--record(state, {id, non_hashed_id, keys, predecessor, successor, main}).
--record(node, {id, non_hashed_id, pid, fingertable}).
+-record(state, {id, non_hashed_id, keys, predecessor, successor, main, fingertable}).
+-record(node, {id, non_hashed_id, pid}).
 
 spawn_node(Id, NonHashedID, Main) ->
     % io:format("Spawned node: ~p~n", [Id]),
@@ -26,6 +26,10 @@ loop(State) ->
         {set_successor, Successor} ->
             % io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, State#state.predecessor, Successor]),
             NewState = State#state{successor = Successor},
+            loop(NewState);
+        {set_finger_table, FingerTable} ->
+            NewState = State#state{fingertable = FingerTable},
+            io:format("Node: ~p finger table: ~p~n", [State#state.id, FingerTable]),
             loop(NewState);
         {print} ->
             io:format("node: ~p predecessor: ~p successor: ~p ~n", [State#state.id, State#state.predecessor, State#state.successor]),

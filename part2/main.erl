@@ -3,7 +3,7 @@
 -compile([nowarn_export_all, nowarn_unused_record]).
 -import(lists,[last/1]).
 
--record(node, {id, non_hashed_id, pid, fingertable}).
+-record(node, {id, non_hashed_id, pid}).
 
 -define(m, 16). %Number of bits in the hash & max entries in finger table
 -define(N, 100). %Number of nodes in the ring
@@ -57,39 +57,37 @@ main(_) ->
 
 
 create_finger_tables(NodesLeft,AllNodes)->
-    erlang:display("a"),
+    GetNext = fun GetNext(Value, Nodes) ->
+        case Nodes of
+            [Node | Next] ->
+                if Value =< Node#node.id -> 
+                    Node;
+                true -> 
+                    GetNext(Value, Next)
+                end;
+            [] -> 
+                hd(AllNodes)
+        end
+    end,
     case NodesLeft of
         [] ->
             nil;
         [Head | Next] ->
-            erlang:display("b"),
             IndexTable = fingertable_values(Head),
-            FingerTable = lists:map(fun(Value) -> get_next(Value, AllNodes) end, IndexTable),
-            io:fwrite("FingerTable: ~p~n", [FingerTable]),
+            FingerTable = lists:map(fun(Value) -> GetNext(Value, AllNodes) end, IndexTable),
+            Head#node.pid ! {set_finger_table, FingerTable},
+            % io:fwrite("FingerTable: ~p~n", [FingerTable]),
             create_finger_tables(Next,AllNodes)
     end.
 
-get_next(Value, Nodes) ->
-    case Nodes of
-        [Node | Next] ->
-            if Value =< Node#node.id -> 
-                Node;
-            true -> 
-                get_next(Value, Next)
-            end;
-        [] -> 
-            hd(Nodes)
-    end.
-
-
-finger_value(N, K, M) ->
-    (N + (trunc(math:pow(2, K-1)) rem trunc(math:pow(2, M)))).
-
-% fingertable(1) for [2, 3, 5, 9,...]
 fingertable_values(Node) ->
+    FingerValue = fun(N, K, M) ->
+        (N + (trunc(math:pow(2, K-1)) rem trunc(math:pow(2, M))))
+    end,
+
     N = Node#node.id,
     M = 16,
-    lists:map(fun(K) -> finger_value(N, K, M) end, lists:seq(1, 16)).
+    lists:map(fun(K) -> FingerValue(N, K, M) end, lists:seq(1, 16)).
 
 
 create_nodes(Count) ->
