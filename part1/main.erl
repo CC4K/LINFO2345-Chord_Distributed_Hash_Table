@@ -33,29 +33,24 @@ main(_) ->
     io:fwrite("~nstarting up control node...~n"),
 
     Ids = lists:seq(0, ?N-1),
-    Nodes = create_nodes(Ids),
+    Nodes = node_utilities:create_nodes(Ids,?m),
 
-    File = load_csv("keys.csv"),
+    File = csv:load_csv("keys.csv"),
     HashedKeys = hash_ids(File, ?m),
     Keys = lists:sort(HashedKeys),
     
-    insert_keys(Nodes, Keys),
+    node_utilities:insert_keys(Nodes, Keys),
     
     InitialState = #{
         nodes => Nodes,
         keys => Keys
     },
-    % send message to firtst node
-    % Node = last(Nodes),
 
     % creating directory accordingly to the number of nodes
     NameDir = io_lib:format("dht_~p", [?N]),
     file:make_dir(NameDir),
     % saving data in files
-    create_csvs(Nodes, NameDir),
-    % PID = Node#node.pid,
-    % io:fwrite("sending make_csv to last node~n"),
-    % PID ! {make_csv},
+    csv:create_csvs(Nodes, NameDir),
 
     loop(InitialState),
     io:fwrite("DONE~n", []).
@@ -66,17 +61,6 @@ main(_) ->
 
 
 
-create_nodes(Ids) ->
-    HashedIds = hash_ids(Ids, ?m),
-    Normal_and_hashed_ids = lists:zip(Ids, HashedIds),
-    Node_IDs = lists:sort(fun({_, A}, {_, B}) -> A =< B end, Normal_and_hashed_ids),
-    % io:fwrite("Node IDs: ~p~n", [Node_IDs]),
-    Nodes = node_creation:spawn_nodes(Node_IDs),
-    Nodes.
-
-create_csvs(Nodes, NameDir) -> 
-    lists:foreach(fun(Node) -> Node#node.pid ! {make_csv, NameDir} end, Nodes),
-    io:fwrite("created all csvs~n").
 
 update_state(Key, Value, State) -> 
     NewState = map:put(Key, Value, State),
@@ -84,54 +68,6 @@ update_state(Key, Value, State) ->
 
 get_value(Key, State) ->
     map:get(Key, State).
-
-insert_keys(Nodes, Keys) -> 
-    RemainingKeys = insert_keys_loop(Nodes, Keys),
-    case RemainingKeys of
-        nil ->
-            nil;
-        _ ->
-            case Nodes of
-                [Node|_] ->
-                    insert_remaining_keys(Node#node.pid, RemainingKeys);
-                [] ->
-                    nil
-            end
-    end.
-
-insert_remaining_keys(Node,Keys) ->
-    case Keys of
-        [Key | NextKey] ->
-            Node ! {add_key, Key},
-            insert_remaining_keys(Node, NextKey);
-        [] -> 
-            nil
-    end.
-
-insert_keys_loop(Nodes, Keys) ->
-    % [{ID, PID} | NextNode]
-    % [Key | NextKey]
-    
-    case Keys of
-        [Key | NextKey] ->
-            case Nodes of
-                [Node | NextNode] ->
-                    PID = Node#node.pid,
-                    ID = Node#node.id,
-                    % io:format("Node: ~p, Key: ~p~n", [ID, Key]),
-                    if Key =< ID ->
-                        PID ! {add_key, Key},
-                        insert_keys_loop([Node | NextNode], NextKey);
-                    true ->
-                        insert_keys_loop(NextNode, Keys)
-                    end;
-                [] ->
-                    Keys
-            end;
-        [] -> 
-            io:fwrite("inserted_all_keys~n"),
-            nil
-    end.
 
 hash_ids(Ids, M) ->
     BinaryToInt = fun(Binary) ->
@@ -145,19 +81,5 @@ hash_ids(Ids, M) ->
         (IntegerHash rem MaxValue)
     end, Ids).
 
-load_csv(FileName) ->
-    Lines = readlines(FileName),
-    lists:map(fun(Line) -> list_to_integer(string:strip(Line, right, $\n)) end, string:tokens(Lines, "\n")).
 
-% readlines/get_all_lines source -> https://stackoverflow.com/questions/2475270/how-to-read-the-contents-of-a-file-in-erlang
-readlines(FileName) ->
-    {ok, Device} = file:open(FileName, [read]),
-    try get_all_lines(Device)
-        after file:close(Device)
-    end.
 
-get_all_lines(Device) ->
-    case io:get_line(Device, "") of
-        eof  -> [];
-        Line -> Line ++ get_all_lines(Device)
-    end.

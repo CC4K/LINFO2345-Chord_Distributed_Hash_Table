@@ -16,7 +16,7 @@ loop(State) ->
             NewState = add_key(Key, State),
             loop(NewState);
         {make_csv, NameDir} ->
-            create_csv(State, NameDir),
+            csv:create_node_csv(State, NameDir),
             % io:format("~p.csv created~n", [State#state.non_hashed_id]),
             loop(State);
         {set_predecessor, Predecessor} ->
@@ -44,16 +44,7 @@ get_keys(Pid) ->
         {keys, Keys} -> Keys
     end.
 
-create_csv(State, NameDir) ->
-    NodeId = io_lib:format("~.16B", [State#state.id]),
-    PredecessorId = io_lib:format("~.16B", [State#state.predecessor#node.id]),
-    SuccessorId = io_lib:format("~.16B", [State#state.successor#node.id]),
-    Keys = string:trim(lists:map(fun(Number) -> string:to_lower(io_lib:format("~.16B|", [Number])) end, State#state.keys), trailing, "|"),
-    Data = io_lib:format("~s,~s,~s|~s", [string:to_lower(NodeId), string:to_lower(PredecessorId), string:to_lower(SuccessorId), Keys]),
-    FileName = io_lib:format("./~s/~p.csv", [NameDir, State#state.non_hashed_id]),
-    {ok, File} = file:open(FileName, [write]),
-    file:write(File, Data),
-    file:close(File).
+
 
 start(Id, NonHashedID, Keys, Main) ->
     InitialState = #state{

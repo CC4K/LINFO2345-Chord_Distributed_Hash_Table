@@ -1,5 +1,5 @@
 
--module(node_creation).
+-module(node_utilities).
 -compile(export_all).
 -compile([nowarn_export_all, nowarn_unused_record]).
 -import(lists,[last/1]).
@@ -31,7 +31,6 @@ spawn_nodes(Ids) ->
                     true ->
                         Current#node.pid ! {set_successor, hd(Next)},
                         Current#node.pid ! {set_predecessor, Last},
-                        % Current#node.pid ! {print},
                         SetNodePredecessor(Next, Current)
                 end
         end
@@ -52,3 +51,47 @@ create_nodes(Ids,M) ->
     
     Nodes = spawn_nodes(Node_IDs),
     Nodes.
+
+insert_keys(Nodes, Keys) ->
+    InsertRemainingKeys = fun InsertRemainingKeys(Node,KeysLeft) ->
+        case KeysLeft of
+            [Key | NextKey] ->
+                Node ! {add_key, Key},
+                InsertRemainingKeys(Node, NextKey);
+            [] -> 
+                nil
+        end
+    end,
+    InsertKeysLoop = fun InsertKeysLoop(NodesLeft, KeysLeft) ->
+        case KeysLeft of
+            [Key | NextKey] ->
+                case NodesLeft of
+                    [Node | NextNode] ->
+                        PID = Node#node.pid,
+                        ID = Node#node.id,
+                        if Key =< ID ->
+                            PID ! {add_key, Key},
+                            InsertKeysLoop([Node | NextNode], NextKey);
+                        true ->
+                            InsertKeysLoop(NextNode, KeysLeft)
+                        end;
+                    [] ->
+                        KeysLeft
+                end;
+            [] -> 
+                io:fwrite("inserted_all_keys~n"),
+                nil
+        end
+    end,
+    RemainingKeys = InsertKeysLoop(Nodes, Keys),
+    case RemainingKeys of
+        nil ->
+            nil;
+        _ ->
+            case Nodes of
+                [Node|_] ->
+                    InsertRemainingKeys(Node#node.pid, RemainingKeys);
+                [] ->
+                    nil
+            end
+    end.
