@@ -3,10 +3,10 @@
 -compile([nowarn_export_all, nowarn_unused_record]).
 -import(lists,[last/1]).
 
--record(node, {id, non_hashed_id, pid}).
+-record(node, {id, non_hashed_id, pid, fingertable}).
 
--define(m, 16).
--define(N, 100).
+-define(m, 16). %Number of bits in the hash & max entries in finger table
+-define(N, 16). %Number of nodes in the ring
 
 
 
@@ -27,22 +27,17 @@ handle_msg(Msg, From, State) ->
             {ok, From} ! {ok, State}
     end.
 
-
 main(_) -> 
     application:start(crypto),
     io:fwrite("~nstarting up control node...~n"),
 
     Nodes = create_nodes(?N),
-
+    create_finger_tables(Nodes),
     File = load_csv("keys.csv"),
     HashedKeys = hash_ids(File, ?m),
     Keys = lists:sort(HashedKeys),
     % io:fwrite("Keys: ~p~n", [Keys]),
 
-    
-
-    
-    
     insert_keys(Nodes, Keys),
     
     InitialState = #{
@@ -59,7 +54,35 @@ main(_) ->
 
     loop(InitialState),
     io:fwrite("DONE~n", []).
+
+
+create_finger_tables(Nodes)->
+    erlang:display("a"),
+    case Nodes of
+        [] ->
+            nil;
+        [Head|Next] ->
+            erlang:display("b"),
+            IndexTable = fingertable_values(Head#node.id),
+            io:fwrite("IndexTable: ~p~n", [IndexTable]),
+            
+            % create_finger_table(IndexTable, Nodes, 1),
+            create_finger_tables([Next])
+    end.
+
+
+finger_value(N, K, M) ->
+    (N + (trunc(math:pow(2, K-1)) rem trunc(math:pow(2, M)))).
+
+% fingertable(1) for [2, 3, 5, 9,...]
+fingertable_values(N) ->
+    M = 16,
+    lists:map(fun(K) -> finger_value(N, K, M) end, lists:seq(1, 16)).
+
+create_finger_table(Node, Nodes,I) ->
     
+    nil.
+
 
 create_nodes(Count) ->
     Ids = lists:seq(1, Count),
@@ -67,6 +90,7 @@ create_nodes(Count) ->
     Normal_and_hashed_ids = lists:zip(Ids, HashedIds),
     Node_IDs = lists:sort(fun({_, A}, {_, B}) -> A =< B end, Normal_and_hashed_ids),
     % io:fwrite("Node IDs: ~p~n", [Node_IDs]),
+    
     Nodes = spawn_nodes(Node_IDs),
     Nodes.
 

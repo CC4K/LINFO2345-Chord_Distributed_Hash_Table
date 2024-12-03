@@ -1,7 +1,7 @@
 -module(node).
 -export([spawn_node/3, add_key/2, get_keys/1,start/4]).
 -record(state, {id, non_hashed_id, keys, predecessor, successor, main}).
--record(node, {id, non_hashed_id, pid}).
+-record(node, {id, non_hashed_id, pid, fingertable}).
 
 spawn_node(Id, NonHashedID, Main) ->
     % io:format("Spawned node: ~p~n", [Id]),
