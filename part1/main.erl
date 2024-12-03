@@ -62,7 +62,7 @@ create_nodes(Ids) ->
     Normal_and_hashed_ids = lists:zip(Ids, HashedIds),
     Node_IDs = lists:sort(fun({_, A}, {_, B}) -> A =< B end, Normal_and_hashed_ids),
     % io:fwrite("Node IDs: ~p~n", [Node_IDs]),
-    Nodes = spawn_nodes(Node_IDs),
+    Nodes = node_creation:spawn_nodes(Node_IDs),
     Nodes.
 
 create_csvs(Nodes) -> 
@@ -124,44 +124,6 @@ insert_keys_loop(Nodes, Keys) ->
             nil
     end.
 
-spawn_nodes(Ids) -> 
-    Nodes = spawn_nodes_recursive(Ids),
-    FirstNode = hd(Nodes),
-    LastNode = last(Nodes),
-    set_node_predecessor_successor_recursive(Nodes, LastNode),
-    LastNodePID = LastNode#node.pid,
-    LastNodePID ! {set_successor, FirstNode},
-    % LastNodePID ! {print},
-    Nodes.
-
-set_node_predecessor_successor_recursive(Nodes, Last) -> 
-    case Nodes of
-        [] ->
-            nil;
-        [Current|Next] ->
-            if
-                Next == [] ->
-                    Current#node.pid ! {set_predecessor, Last};
-                true ->
-                    Current#node.pid ! {set_successor, hd(Next)},
-                    Current#node.pid ! {set_predecessor, Last},
-                    % Current#node.pid ! {print},
-                    set_node_predecessor_successor_recursive(Next, Current)
-            end
-    end.
-
-spawn_nodes_recursive([CurrNode | Rest]) -> 
-    case Rest of
-        [] ->
-            {NormalID, HashedID} = CurrNode,
-            Node = #node{id = HashedID, non_hashed_id = NormalID  ,pid = node:spawn_node(HashedID, NormalID , self())},
-            [Node];
-        [_| _] ->
-            {NormalID, HashedID} = CurrNode,
-            Node = #node{id = HashedID, non_hashed_id = NormalID  ,pid = node:spawn_node(HashedID, NormalID , self())},
-            [Node | spawn_nodes_recursive(Rest)]
-    end.
-
 hash_ids(Ids, M) ->
     BinaryToInt = fun(Binary) ->
         lists:foldl(fun(Byte, Acc) -> (Acc bsl 8) bor Byte end, 0, binary:bin_to_list(Binary))
@@ -171,7 +133,7 @@ hash_ids(Ids, M) ->
         Hash = crypto:hash(sha, integer_to_binary(Id)),
         IntegerHash = BinaryToInt(Hash),
         %% Map to range 1 to 2^m
-        (IntegerHash rem MaxValue) + 1
+        (IntegerHash rem MaxValue)
     end, Ids).
 
 load_csv(FileName) ->
