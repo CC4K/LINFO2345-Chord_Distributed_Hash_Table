@@ -6,7 +6,7 @@
 -record(node, {id, non_hashed_id, pid}).
 
 -define(m, 16).
--define(N, 100).
+-define(N, 10).
 
 
 
@@ -32,16 +32,12 @@ main(_) ->
     application:start(crypto),
     io:fwrite("~nstarting up control node...~n"),
 
-    Nodes = create_nodes(?N),
+    Ids = lists:seq(0, ?N-1),
+    Nodes = create_nodes(Ids),
 
     File = load_csv("keys.csv"),
     HashedKeys = hash_ids(File, ?m),
     Keys = lists:sort(HashedKeys),
-    % io:fwrite("Keys: ~p~n", [Keys]),
-
-    
-
-    
     
     insert_keys(Nodes, Keys),
     
@@ -61,8 +57,7 @@ main(_) ->
     io:fwrite("DONE~n", []).
     
 
-create_nodes(Count) ->
-    Ids = lists:seq(1, Count),
+create_nodes(Ids) ->
     HashedIds = hash_ids(Ids, ?m),
     Normal_and_hashed_ids = lists:zip(Ids, HashedIds),
     Node_IDs = lists:sort(fun({_, A}, {_, B}) -> A =< B end, Normal_and_hashed_ids),
@@ -168,19 +163,16 @@ spawn_nodes_recursive([CurrNode | Rest]) ->
     end.
 
 hash_ids(Ids, M) ->
+    BinaryToInt = fun(Binary) ->
+        lists:foldl(fun(Byte, Acc) -> (Acc bsl 8) bor Byte end, 0, binary:bin_to_list(Binary))
+    end,
     MaxValue = 1 bsl M, % 2^m
     lists:map(fun(Id) ->
-        Hash = crypto:hash(sha, erlang:term_to_binary(Id)),
-        IntegerHash = binary_to_int(Hash),
+        Hash = crypto:hash(sha, integer_to_binary(Id)),
+        IntegerHash = BinaryToInt(Hash),
         %% Map to range 1 to 2^m
         (IntegerHash rem MaxValue) + 1
     end, Ids).
-
-binary_to_int(Binary) ->
-    lists:foldl(fun(Byte, Acc) -> (Acc bsl 8) bor Byte end, 0, binary:bin_to_list(Binary)).
-
-sha1(Data) ->
-    crypto:hash(sha, Data).
 
 load_csv(FileName) ->
     Lines = readlines(FileName),

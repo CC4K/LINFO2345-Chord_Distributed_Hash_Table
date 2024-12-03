@@ -31,7 +31,9 @@ main(_) ->
     application:start(crypto),
     io:fwrite("~nstarting up control node...~n"),
 
-    Nodes = create_nodes(?N),
+    Ids = lists:seq(0, ?N-1),
+    Nodes = create_nodes(Ids),
+
     create_finger_tables(Nodes,Nodes),
     File = load_csv("keys.csv"),
     HashedKeys = hash_ids(File, ?m),
@@ -91,12 +93,10 @@ fingertable_values(Node) ->
     lists:map(fun(K) -> FingerValue(N, K, M) end, lists:seq(1, 16)).
 
 
-create_nodes(Count) ->
-    Ids = lists:seq(1, Count),
+create_nodes(Ids) ->
     HashedIds = hash_ids(Ids, ?m),
     Normal_and_hashed_ids = lists:zip(Ids, HashedIds),
     Node_IDs = lists:sort(fun({_, A}, {_, B}) -> A =< B end, Normal_and_hashed_ids),
-    % io:fwrite("Node IDs: ~p~n", [Node_IDs]),
     
     Nodes = spawn_nodes(Node_IDs),
     Nodes.
@@ -191,7 +191,6 @@ spawn_nodes(Ids) ->
     SetNodePredecessor(Nodes, LastNode),
     LastNodePID = LastNode#node.pid,
     LastNodePID ! {set_successor, FirstNode},
-    % LastNodePID ! {print},
     Nodes.
 
 
@@ -203,7 +202,7 @@ hash_ids(Ids, M) ->
     end,
     MaxValue = 1 bsl M, % 2^m
     lists:map(fun(Id) ->
-        Hash = crypto:hash(sha, erlang:term_to_binary(Id)),
+        Hash = crypto:hash(sha, integer_to_binary(Id)),
         IntegerHash = BinaryToInt(Hash),
         %% Map to range 1 to 2^m
         (IntegerHash rem MaxValue) + 1
