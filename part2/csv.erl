@@ -2,7 +2,7 @@
 -compile(export_all).
 -compile([nowarn_export_all, nowarn_unused_record]).
 -record(node, {id, non_hashed_id, pid}).
--record(state, {id, non_hashed_id, keys, predecessor, successor, main, fingertable}).
+-record(state, {id, non_hashed_id, keys, predecessor, successor, main, fingertable, keys_path}).
 
 
 create_csvs(Nodes, NameDir) -> 

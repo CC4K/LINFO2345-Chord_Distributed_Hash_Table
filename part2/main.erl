@@ -51,9 +51,23 @@ main(_) ->
     % saving data in files
     csv:create_csvs(Nodes, NameDir),
 
-    First = hd(Nodes),
+    
+    A = fun A(Nd, Id) ->
+        case Nd of
+            [] -> nil;
+            [Node|Rest] -> 
+                if 
+                    Node#node.non_hashed_id == Id -> Node;
+                true -> A(Rest, Id)
+            end
+        end
+    end,
 
-    First#node.pid ! {lookup_key, First#node.pid, last(Keys) ,[]},
+
+    Second = A(Nodes,3),
+    % Second#node.pid ! {lookup_key, Second#node.pid, last(Keys) ,[]},
+    Second#node.pid ! {lookup_key, Second#node.pid, hd(Keys) ,[]},
+
 
     loop(InitialState),
     io:fwrite("DONE~n", []).
