@@ -31,11 +31,45 @@ loop(State) ->
             NewState = State#state{fingertable = FingerTable},
             % io:format("Node: ~p finger table: ~p~n", [State#state.id, FingerTable]),
             loop(NewState);
+        {lookup_key,Caller,Key, Chain} -> %TODO: make it so that the first node iesn't in the list
+            io:format("Node ~p: Looking up key ~p PID: ~p~n", [State#state.id, Key, self()]),
+            lookup_key(State,Key,Caller, Chain),
+            loop(State);
+        {found_key, Key, ResultNode, Chain} ->
+            io:format("Key ~p found at node ~p with chain ~p~n", [Key, ResultNode#node.non_hashed_id, Chain]),
+            loop(State);
         {print} ->
             io:format("node: ~p predecessor: ~p successor: ~p ~n", [State#state.id, State#state.predecessor, State#state.successor]),
             loop(State)
     end.
+    
+    
+    get_current_node(State)->
+        CurrentNode = #node{id = State#state.id, non_hashed_id = State#state.non_hashed_id, pid = self()},
+        CurrentNode.        
 
+lookup_key(State, Key, Caller, Chain)->
+    CurrentNode = get_current_node(State),
+    FingerTable = State#state.fingertable,
+    LookupKeyLoop = fun LookupKeyLoop(NodesLeft,Best)->
+        case NodesLeft of
+            [Head|Tail]->
+                {BestNode,_} = Best,
+                if ((Head#node.id =< Key) andalso (BestNode#node.id =< Head#node.id))->
+                        LookupKeyLoop(Tail,{Head,1});
+                        true ->
+                        LookupKeyLoop(Tail,Best)
+                end;
+            []->
+                Best
+        end
+    end,
+    {ResultNode, IsReplaced} = LookupKeyLoop(FingerTable,{CurrentNode,0}),
+    if IsReplaced == 1 ->
+        ResultNode#node.pid ! {lookup_key, Caller, Key, Chain ++ [CurrentNode]};
+        true ->
+        Caller ! {found_key, Key, ResultNode, Chain ++ [CurrentNode]}
+    end.
 
 
 add_key(Key, State) ->

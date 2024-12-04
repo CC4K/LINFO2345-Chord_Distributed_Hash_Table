@@ -20,3 +20,4 @@ _build/
 _checkouts/
 
 part1/test.erl
+/.vscode

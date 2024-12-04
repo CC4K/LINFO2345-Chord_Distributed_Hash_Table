@@ -34,7 +34,7 @@ main(_) ->
     Ids = lists:seq(0, ?N-1),
     Nodes = node_utilities:create_nodes(Ids,?m),
 
-    finger_tables:create_finger_tables(Nodes,Nodes),
+    finger_tables:create_finger_tables(Nodes,Nodes,?m),
     File = csv:load_csv("keys.csv"),
     HashedKeys = hash_ids(File, ?m),
     Keys = lists:sort(HashedKeys),
@@ -50,6 +50,10 @@ main(_) ->
     file:make_dir(NameDir),
     % saving data in files
     csv:create_csvs(Nodes, NameDir),
+
+    First = hd(Nodes),
+
+    First#node.pid ! {lookup_key, First#node.pid, last(Keys) ,[]},
 
     loop(InitialState),
     io:fwrite("DONE~n", []).
