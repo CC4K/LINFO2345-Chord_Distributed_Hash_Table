@@ -1,5 +1,5 @@
 -module(node).
--export([spawn_node/3, add_key/2, get_keys/1,start/4]).
+-export([spawn_node/3]).
 -record(state, {id, non_hashed_id, keys, predecessor, successor, main, fingertable, keys_path}).
 -record(node, {id, non_hashed_id, pid}).
 -record(keys_path, {keys_path, keys_left_to_find}).
@@ -55,54 +55,52 @@ loop(State) ->
         CurrentNode.        
 
 
-find_successor(Nodes,Key) -> 
-    NodesList = Nodes,
-    FindSuccessorLoop = fun FindSuccessorLoop(NodesLeft) -> 
-        case NodesLeft of 
-            [Head|Tail] -> 
-                if Head#node.id >= Key -> 
-                    Head; 
-                    true -> 
-                    FindSuccessorLoop(Tail) 
-                end; 
-            [] -> 
-                lists:last(NodesList) 
-        end 
-    end, 
-    FindSuccessorLoop(NodesList). 
-
 lookup_key(State, Key, Caller, Chain)->
     CurrentNode = get_current_node(State),
+    % CurrentId = CurrentNode#node.id,
     FingerTable = State#state.fingertable,
-    LookupKeyLoop = fun LookupKeyLoop(NodesLeft,Best)->
-        % io:fwrite("Best node: ~p~n", [Best]),
-        
+    LookupKeyLoop = fun LookupKeyLoop(LastNode,NodesLeft)->
         case NodesLeft of
             [Head|Tail]->
-                {BestNode,_} = Best,
-                if ((Head#node.id =< Key) andalso (BestNode#node.id =< Head#node.id))->
-                        LookupKeyLoop(Tail,{Head,1});
+                if Head#node.id == LastNode#node.id ->
+                    %^ EQUAL
+                    LookupKeyLoop(Head, Tail);
+                Head#node.id < LastNode#node.id ->
+                        %^ OVERFLOW
+                        CurrBigger = Head#node.id > Key,
+                        LastSmaller = LastNode#node.id < Key,
+                        if CurrBigger or LastSmaller ->
+                            LastNode;
                         true ->
-                        LookupKeyLoop(Tail,Best)
+                            LookupKeyLoop(Head,Tail)
+                        end;                            
+                true ->
+                        CurrBigger = Head#node.id > Key,
+                        LastSmaller = LastNode#node.id < Key,
+                        if CurrBigger and LastSmaller->
+                                LastNode;
+                        true ->
+                                LookupKeyLoop(Head,Tail)
+                        end
                 end;
             []->
-                Best
+                LastNode
         end
     end,
-    A = find_successor(FingerTable, Key),
-    io:fwrite("Current node: ~p~n", [CurrentNode]),
-    io:fwrite("finger table: ~p~n", [FingerTable]),
-    SortedFingerTable = lists:sort(fun(A,B) -> A#node.id < B#node.id end,FingerTable),
-    io:fwrite("Sorted finger table: ~p~n", [SortedFingerTable]),
+    io:fwrite("Current node: ~p Key: ~p~n", [CurrentNode, Key]),
     
-    {ResultNode, IsReplaced} = LookupKeyLoop(SortedFingerTable,{CurrentNode,0}),
-    if IsReplaced == 1 ->
-        ResultNode#node.pid ! {lookup_key, Caller, Key, Chain ++ [CurrentNode]};
-        true ->
-        Caller ! {found_key, Key, Chain ++ [CurrentNode]}
+    % io:fwrite("finger table: ~p~n", [FingerTable]),
+    
+    ResultNode = LookupKeyLoop(hd(FingerTable),FingerTable),
+    IsSelf = ResultNode#node.id == CurrentNode#node.id,
+    First = hd(FingerTable),
+    IsNext = ResultNode#node.id == First#node.id,
+    io:fwrite("Result node: ~p~n", [ResultNode]),
+    if IsNext or IsSelf ->
+        Caller ! {found_key, Key, Chain ++ [CurrentNode]};
+    true ->
+            ResultNode#node.pid ! {lookup_key, Caller, Key, Chain ++ [CurrentNode]}
     end.
-
-
 add_key(Key, State) ->
     NewState = State#state{keys = [Key|State#state.keys]},
     NewState.

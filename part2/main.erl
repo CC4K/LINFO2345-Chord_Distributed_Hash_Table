@@ -6,7 +6,7 @@
 -record(node, {id, non_hashed_id, pid}).
 
 -define(m, 16). %Number of bits in the hash & max entries in finger table
--define(N, 100). %Number of nodes in the ring
+-define(N, 50). %Number of nodes in the ring
 
 
 
@@ -64,9 +64,9 @@ main(_) ->
     end,
 
 
-    Second = A(Nodes,3),
+    Second = A(Nodes,7),
     % Second#node.pid ! {lookup_key, Second#node.pid, last(Keys) ,[]},
-    Second#node.pid ! {lookup_key, Second#node.pid, hd(Keys) ,[]},
+    Second#node.pid ! {lookup_key, Second#node.pid, last(Keys) ,[]},
 
 
     loop(InitialState),
