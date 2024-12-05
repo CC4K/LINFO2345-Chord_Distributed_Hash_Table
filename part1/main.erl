@@ -8,6 +8,10 @@
 -define(m, 16).
 -define(N, 100).
 
+spawn_main() ->
+    Pid = spawn(fun() -> main([]) end),
+    Pid.
+
 main(_) -> 
     application:start(crypto),
     io:fwrite("~nstarting up control node...~n"),

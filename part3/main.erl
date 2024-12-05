@@ -31,6 +31,11 @@ handle_msg(Msg, From, State) ->
             {ok, From} ! {ok, State}
     end.
 
+
+spawn_main() ->
+    Pid = spawn(fun() -> main([]) end),
+    Pid.
+
 main(_) -> 
     application:start(crypto),
     io:fwrite("~nstarting up control node...~n"),
