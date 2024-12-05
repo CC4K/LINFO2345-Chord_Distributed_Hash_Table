@@ -15,6 +15,10 @@ loop(State) ->
         {Msg, From} -> 
             Next_State = handle_msg(Msg, From, State),
             loop(Next_State);
+        % {done, From} -> 
+        %     NameDir = io_lib:format("dht_~p", [?N]),
+        %     csv:create_csvs(From, NameDir),
+        %     loop(State);
         stop -> 
             io:format("Stopping loop~n"),
             ok
@@ -32,7 +36,7 @@ main(_) ->
     io:fwrite("~nstarting up control node...~n"),
 
     Ids = lists:seq(0, ?N-1),
-    Nodes = node_utilities:create_nodes(Ids,?m),
+    Nodes = node_utilities:create_nodes(Ids,?m,?N),
 
     finger_tables:create_finger_tables(Nodes,Nodes,?m),
     File = csv:load_csv("keys.csv"),
@@ -63,11 +67,12 @@ main(_) ->
         end
     end,
 
-    io:fwrite("Nodes: ~p~n", [Nodes]),
+    io:fwrite("keys: ~p~n", [Keys]),
+
+    KeyQueries = csv:load_csv("key_queries.csv"),
     Second = A(Nodes,7),
     % Second#node.pid ! {lookup_key, Second#node.pid, last(Keys) ,[]},
-    Second#node.pid ! {lookup_key, Second#node.pid, last(Keys) ,[]},
-
+    [Second#node.pid ! {lookup_key, Second#node.pid, Key, []} || Key <- KeyQueries],
 
     loop(InitialState),
     io:fwrite("DONE~n", []).

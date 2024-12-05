@@ -2,8 +2,9 @@
 -compile(export_all).
 -compile([nowarn_export_all, nowarn_unused_record]).
 -record(node, {id, non_hashed_id, pid}).
--record(state, {id, non_hashed_id, keys, predecessor, successor, main, fingertable, keys_path}).
-
+-record(state, {id, non_hashed_id, keys, predecessor, successor, main, fingertable, keys_path, node_count}).
+-record(keys_path, {keys_path, keys_left_to_find}).
+-record(key_path, {key, path}).
 
 create_csvs(Nodes, NameDir) -> 
     lists:foreach(fun(Node) -> Node#node.pid ! {make_csv, NameDir} end, Nodes),
@@ -38,3 +39,52 @@ create_node_csv(State, NameDir) ->
     {ok, File} = file:open(FileName, [write]),
     file:write(File, Data),
     file:close(File).
+
+create_queries_csv(State, NameDir) ->
+
+    GetLine = fun(Key, NodePath) ->
+        % Nodepath = list of nodes {node, node, node}
+        NodePathStr = string:join(lists:map(fun(Node) -> io_lib:format("~.16B", [Node#node.id]) end, NodePath), "|"),
+        io:fwrite("NodePathStr: ~s~n", [NodePathStr]),
+
+        String = io_lib:format("~.16B,~s~n", [Key, NodePathStr]),
+        io:fwrite("String:~s~n", [String]),
+        String
+    end,
+
+
+    
+    % erlang:display("A"),
+    % io:format("State: ~p~n", [State]),
+    
+    KeysPath = State#state.keys_path,
+    % io:format("KeysPath: ~p~n", [KeysPath#keys_path.keys_path]),
+    
+    FileLine = lists:map(fun(KeyPath) -> 
+        Key = KeyPath#key_path.key,
+        Path = KeyPath#key_path.path,
+        Line = GetLine(Key, Path),
+        Line
+    end, KeysPath#keys_path.keys_path),
+
+
+
+
+    % lists:foreach(fun(KeyPath) -> 
+    %     Key = KeyPath#key_path.key,
+    %     Path = KeyPath#key_path.path,
+    %     Line = GetLine(Key, Path),
+    %     FileLine = [Line|FileLine]
+    % end, KeysPath#keys_path.keys_path),
+
+    Data = string:join(FileLine, ""),
+    FileName = io_lib:format("./~s/~p_queries.csv", [NameDir, State#state.non_hashed_id]),
+    {ok, File} = file:open(FileName, [write]),
+    file:write(File, Data),
+    file:close(File).
+
+
+
+
+
+

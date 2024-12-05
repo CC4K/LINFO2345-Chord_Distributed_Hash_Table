@@ -1,12 +1,12 @@
 -module(node).
--export([spawn_node/3]).
--record(state, {id, non_hashed_id, keys, predecessor, successor, main, fingertable, keys_path}).
+-export([spawn_node/4]).
+-record(state, {id, non_hashed_id, keys, predecessor, successor, main, fingertable, keys_path, node_count}).
 -record(node, {id, non_hashed_id, pid}).
 -record(keys_path, {keys_path, keys_left_to_find}).
 -record(key_path, {key, path}).
-spawn_node(Id, NonHashedID, Main) ->
+spawn_node(Id, NonHashedID, NodeCount, Main) ->
     % io:format("Spawned node: ~p~n", [Id]),
-    Pid = spawn(fun() -> start(Id, NonHashedID, [], Main) end),
+    Pid = spawn(fun() -> start(Id, NonHashedID, NodeCount, [], Main) end),
     % register(Id, Pid),
     Pid.
 
@@ -19,6 +19,9 @@ loop(State) ->
         {make_csv, NameDir} ->
             csv:create_node_csv(State, NameDir),
             % io:format("~p.csv created~n", [State#state.non_hashed_id]),
+            loop(State);
+        {make_queries_csv, NameDir} ->
+            csv:create_queries_csv(State, NameDir),
             loop(State);
         {set_predecessor, Predecessor} ->
             % io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, Predecessor, State#state.successor]),
@@ -43,6 +46,8 @@ loop(State) ->
             NewKeysPath = KeysPath#keys_path{keys_path = [KeyPath|KeysPath#keys_path.keys_path]},
             io:format("Node ~p: Keys path ~p~n", [State#state.id, NewKeysPath]),
             NewState = State#state{keys_path = NewKeysPath},
+            NameDir = io_lib:format("dht_~p", [NewState#state.node_count]),
+            csv:create_queries_csv(NewState, NameDir),
             loop(NewState);
         {print} ->
             io:format("node: ~p predecessor: ~p successor: ~p ~n", [State#state.id, State#state.predecessor, State#state.successor]),
@@ -105,7 +110,7 @@ lookup_key(State, Key, Caller, Chain)->
     {ResultNode,FirstJump} = LookupKeyLoop(CurrentNode,FingerTable,1),
 
     if FirstJump == 1 ->
-            Caller ! {found_key, Key, Chain ++ [CurrentNode|hd(FingerTable)]};
+            Caller ! {found_key, Key, Chain ++ [CurrentNode] ++ [hd(FingerTable)]};
         true ->
         ResultNode#node.pid ! {lookup_key, Caller, Key, Chain ++ [CurrentNode]}
     end.
@@ -121,7 +126,7 @@ get_keys(Pid) ->
 
 
 
-start(Id, NonHashedID, Keys, Main) ->
+start(Id, NonHashedID, NodeCount, Keys, Main) ->
     KeysPath = #keys_path{keys_path = [], keys_left_to_find = 0},
     InitialState = #state{
         id = Id, 
@@ -130,6 +135,7 @@ start(Id, NonHashedID, Keys, Main) ->
         main = Main, 
         predecessor = nil, 
         successor = nil,
-        keys_path = KeysPath
+        keys_path = KeysPath,
+        node_count = NodeCount
     },
     loop(InitialState).

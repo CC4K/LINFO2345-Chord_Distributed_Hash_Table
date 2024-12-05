@@ -7,16 +7,16 @@
 
 -record(node, {id, non_hashed_id, pid}).
 
-spawn_nodes(Ids) -> 
+spawn_nodes(Ids,NodeCount) -> 
     SpawnNodesRecursive = fun SpawnNodesRecursive([CurrNode | Rest]) -> 
     case Rest of
         [] ->
             {NormalID, HashedID} = CurrNode,
-            Node = #node{id = HashedID, non_hashed_id = NormalID  ,pid = node:spawn_node(HashedID, NormalID , self())},
+            Node = #node{id = HashedID, non_hashed_id = NormalID  ,pid = node:spawn_node(HashedID, NormalID,NodeCount , self())},
             [Node];
         [_| _] ->
             {NormalID, HashedID} = CurrNode,
-            Node = #node{id = HashedID, non_hashed_id = NormalID  ,pid = node:spawn_node(HashedID, NormalID , self())},
+            Node = #node{id = HashedID, non_hashed_id = NormalID  ,pid = node:spawn_node(HashedID, NormalID,NodeCount , self())},
             [Node | SpawnNodesRecursive(Rest)]
     end
     end,
@@ -44,12 +44,12 @@ spawn_nodes(Ids) ->
     Nodes.
 
 
-create_nodes(Ids,M) ->
+create_nodes(Ids,M,N) ->
     HashedIds = main:hash_ids(Ids, M),
     Normal_and_hashed_ids = lists:zip(Ids, HashedIds),
     Node_IDs = lists:sort(fun({_, A}, {_, B}) -> A =< B end, Normal_and_hashed_ids),
     
-    Nodes = spawn_nodes(Node_IDs),
+    Nodes = spawn_nodes(Node_IDs,N),
     Nodes.
 
 insert_keys(Nodes, Keys) ->
