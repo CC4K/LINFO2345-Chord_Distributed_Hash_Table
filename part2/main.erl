@@ -69,7 +69,9 @@ main(_) ->
 
     io:fwrite("Nodes: ~p~n", [Nodes]),
 
-    KeyQueries = csv:load_csv("key_queries.csv"),
+    KeyQueriesCSV = csv:load_csv("key_queries.csv"),
+    KeyQueries = hash_ids(KeyQueriesCSV, ?m),
+
     % Second = A(Nodes,7),
     % Second#node.pid ! {find_key, last(Keys)},
     % [Second#node.pid ! {lookup_key, Second#node.pid, Key, []} || Key <- KeyQueries],
