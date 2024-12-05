@@ -45,10 +45,10 @@ create_queries_csv(State, NameDir) ->
     GetLine = fun(Key, NodePath) ->
         % Nodepath = list of nodes {node, node, node}
         NodePathStr = string:join(lists:map(fun(Node) -> io_lib:format("~.16B", [Node#node.id]) end, NodePath), "|"),
-        io:fwrite("NodePathStr: ~s~n", [NodePathStr]),
+        % io:fwrite("NodePathStr: ~s~n", [NodePathStr]),
 
         String = io_lib:format("~.16B,~s~n", [Key, NodePathStr]),
-        io:fwrite("String:~s~n", [String]),
+        % io:fwrite("String:~s~n", [String]),
         String
     end,
 

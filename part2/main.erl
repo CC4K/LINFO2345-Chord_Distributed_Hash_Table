@@ -67,12 +67,13 @@ main(_) ->
         end
     end,
 
-    io:fwrite("keys: ~p~n", [Keys]),
+    io:fwrite("Nodes: ~p~n", [Nodes]),
 
     KeyQueries = csv:load_csv("key_queries.csv"),
-    Second = A(Nodes,7),
-    % Second#node.pid ! {lookup_key, Second#node.pid, last(Keys) ,[]},
-    [Second#node.pid ! {lookup_key, Second#node.pid, Key, []} || Key <- KeyQueries],
+    % Second = A(Nodes,7),
+    % Second#node.pid ! {find_key, last(Keys)},
+    % [Second#node.pid ! {lookup_key, Second#node.pid, Key, []} || Key <- KeyQueries],
+    [Node#node.pid ! {find_key, Key} || Node <- Nodes, Key <- KeyQueries],
 
     loop(InitialState),
     io:fwrite("DONE~n", []).

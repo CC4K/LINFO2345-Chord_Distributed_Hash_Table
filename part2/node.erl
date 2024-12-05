@@ -35,7 +35,17 @@ loop(State) ->
             NewState = State#state{fingertable = FingerTable},
             % io:format("Node: ~p finger table: ~p~n", [State#state.id, FingerTable]),
             loop(NewState);
-        {lookup_key,Caller,Key, Chain} -> %TODO: make it so that the first node isn't in the list in the CSV
+        {find_key,Key} ->
+            case own_key(State, Key) of
+                true ->
+                    self() ! {found_key, Key, [get_current_node(State)]},
+                    loop(State);
+                false ->
+                    lookup_key(State,Key,self(),[]),
+                    loop(State)
+            end;
+
+        {lookup_key,Caller,Key, Chain} ->
             % io:format("Node ~p: Looking up key ~p PID: ~p~n", [State#state.id, Key, self()]),
             lookup_key(State,Key,Caller, Chain),
             loop(State);
@@ -44,13 +54,13 @@ loop(State) ->
             KeyPath = #key_path{key = Key, path = Chain},
             KeysPath = State#state.keys_path,
             NewKeysPath = KeysPath#keys_path{keys_path = [KeyPath|KeysPath#keys_path.keys_path]},
-            io:format("Node ~p: Keys path ~p~n", [State#state.id, NewKeysPath]),
+            % io:format("Node ~p: Keys path ~p~n", [State#state.id, NewKeysPath]),
             NewState = State#state{keys_path = NewKeysPath},
             NameDir = io_lib:format("dht_~p", [NewState#state.node_count]),
             csv:create_queries_csv(NewState, NameDir),
             loop(NewState);
         {print} ->
-            io:format("node: ~p predecessor: ~p successor: ~p ~n", [State#state.id, State#state.predecessor, State#state.successor]),
+            % io:format("node: ~p predecessor: ~p successor: ~p ~n", [State#state.id, State#state.predecessor, State#state.successor]),
             loop(State)
     end.
     
@@ -75,7 +85,7 @@ lookup_key(State, Key, Caller, Chain)->
                         CurrBigger = Head#node.id > Key,
                         LastSmaller = LastNode#node.id < Key,
                         if CurrBigger or LastSmaller ->
-                            io:fwrite("OVERFLOW LastNode: ~p ~n", [LastNode#node.id]),
+                            % io:fwrite("OVERFLOW LastNode: ~p ~n", [LastNode#node.id]),
                             {LastNode, FirstJump};
                         true ->
                             LookupKeyLoop(Head,Tail,0)
@@ -85,25 +95,21 @@ lookup_key(State, Key, Caller, Chain)->
                         CurrBigger = Head#node.id > Key,
                         LastSmaller = LastNode#node.id < Key,
                         if CurrBigger and LastSmaller->
-                            io:fwrite("NORMAL LastNode: ~p ~n", [LastNode#node.id]),
+                            % io:fwrite("NORMAL LastNode: ~p ~n", [LastNode#node.id]),
                             {LastNode, FirstJump};
                         true -> 
                             LookupKeyLoop(Head,Tail,0)
                         end
                 end;
             []->
-                io:fwrite("END LastNode: ~p ~n", [LastNode#node.id]),
+                % io:fwrite("END LastNode: ~p ~n", [LastNode#node.id]),
                 {LastNode, FirstJump}
         end
     end,
-    io:fwrite("Current node: ~p Key: ~p ", [CurrentNode#node.id, Key]),
+    % io:fwrite("Current node: ~p Key: ~p~n ", [CurrentNode#node.id, Key]),
     
     % io:fwrite("finger table: ~p~n", [FingerTable]),
-    if CurrentNode#node.id == 65103 ->
-    io:fwrite("Finger table for node 65103: ~p~n", [FingerTable]);
-    true ->
-        ok
-    end,
+
 
 
 
@@ -125,6 +131,28 @@ get_keys(Pid) ->
     end.
 
 
+own_key(State, Key) ->
+    Id = State#state.id,
+    Predecessor = State#state.predecessor#node.id,
+    if Id < Predecessor  ->
+            % [SELF | PRED]
+            CurrBigger = Id > Key,
+            LastSmaller = Predecessor < Key,
+            if CurrBigger orelse LastSmaller ->
+                true;
+            true ->
+                false
+            end;
+        true ->
+            % [PRED | SELF]
+            CurrBigger = Id > Key,
+            LastSmaller = Predecessor < Key,
+            if CurrBigger andalso LastSmaller ->
+                true;
+            true ->
+                false
+            end
+    end.
 
 start(Id, NonHashedID, NodeCount, Keys, Main) ->
     KeysPath = #keys_path{keys_path = [], keys_left_to_find = 0},
