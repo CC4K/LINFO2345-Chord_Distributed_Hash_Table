@@ -4,7 +4,12 @@
 -record(node, {id, non_hashed_id, pid}).
 
 
-create_finger_tables(NodesLeft,AllNodes,M)->
+
+create_finger_tables(Nodes,M) ->
+    create_finger_tables_loop(Nodes,Nodes,M).
+
+
+create_finger_tables_loop(NodesLeft,AllNodes,M)->
     GetNext = fun GetNext(Value, Nodes) ->
         case Nodes of
             [Node | Next] ->
@@ -25,7 +30,7 @@ create_finger_tables(NodesLeft,AllNodes,M)->
             FingerTable = lists:map(fun(Value) -> GetNext(Value, AllNodes) end, IndexTable),
             Head#node.pid ! {set_finger_table, FingerTable},
             % io:format("Finger table for ~p: ~p~n", [Head#node.non_hashed_id, FingerTable]),
-            create_finger_tables(Next,AllNodes,M)
+            create_finger_tables_loop(Next,AllNodes,M)
     end.
 
 fingertable_values(Node,M) ->

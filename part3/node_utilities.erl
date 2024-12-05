@@ -77,7 +77,7 @@ add_node(Node, Nodes, M) ->
 
     Predecessor#node.pid ! {set_successor, NewNode},
     Successor#node.pid ! {set_predecessor, NewNode},
-
+    finger_tables:create_finger_tables(NewNodeList, M),
     NewNodeList.
 
 get_neighbors(Nodes, NewNode) ->

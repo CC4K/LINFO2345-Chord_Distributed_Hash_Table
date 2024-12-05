@@ -42,7 +42,7 @@ main(_) ->
 
     Nodes = node_utilities:create_nodes(Ids,?m,NodeCount),
 
-    finger_tables:create_finger_tables(Nodes,Nodes,?m),
+    finger_tables:create_finger_tables(Nodes,?m),
     File = csv:load_csv("keys.csv"),
     HashedKeys = hash_ids(File, ?m),
     Keys = lists:sort(HashedKeys),
@@ -71,11 +71,11 @@ main(_) ->
     
     io:fwrite("NewNodes: ~p~n", [NewNodes]),
     
-    NewNodes2 = node_utilities:add_node(69, NewNodes, ?m),
-    NewNodes3 = node_utilities:add_node(19, NewNodes2, ?m),
-    NewNodes4 = node_utilities:add_node(893698, NewNodes3, ?m),
+    % NewNodes2 = node_utilities:add_node(69, NewNodes, ?m),
+    % NewNodes3 = node_utilities:add_node(19, NewNodes2, ?m),
+    % NewNodes4 = node_utilities:add_node(893698, NewNodes3, ?m),
 
-    io:fwrite("NewNodes: ~p~n", [NewNodes4]),
+    % io:fwrite("NewNodes: ~p~n", [NewNodes4]),
     
 loop(InitialState),
     io:fwrite("DONE~n", []).

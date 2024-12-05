@@ -25,8 +25,14 @@ loop(State) ->
             loop(State);
         {set_predecessor, Predecessor} ->
             % io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, Predecessor, State#state.successor]),
-            NewState = State#state{predecessor = Predecessor},
-            loop(NewState);
+            if State#state.predecessor == nil ->
+                    NewState = State#state{predecessor = Predecessor},
+                    loop(NewState);
+                true ->
+                    NewKeys = transfer_keys_to_predecessor(State, Predecessor),
+                    NewState = State#state{predecessor = Predecessor, keys = NewKeys},
+                    loop(NewState)
+            end;
         {set_successor, Successor} ->
             % io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, State#state.predecessor, Successor]),
             NewState = State#state{successor = Successor},
@@ -65,9 +71,60 @@ loop(State) ->
     end.
     
     
-    get_current_node(State)->
-        CurrentNode = #node{id = State#state.id, non_hashed_id = State#state.non_hashed_id, pid = self()},
-        CurrentNode.        
+
+transfer_keys_to_predecessor(State, Predecessor) ->
+    PredecessorId = Predecessor#node.id,
+    Id = State#state.id,
+    LoopNormal = fun LoopNormal(KeysLeft) -> 
+        case KeysLeft of
+            [Key | Next] ->
+                if Key > Id ->
+                    Predecessor#node.pid ! {add_key, Key},
+                    LoopNormal(Next);
+                    true ->
+                        if Key > PredecessorId ->
+                                [Key | LoopNormal(Next)];
+                            true ->
+                                Predecessor#node.pid ! {add_key, Key},
+                                LoopNormal(Next)
+                        end
+                end;
+            [] ->
+                []
+        end
+    end,
+    LoopOverflow = fun LoopOverflow(KeysLeft) -> 
+        case KeysLeft of
+            [Key | Next] ->
+                if Key < Id ->
+                    [Key | LoopOverflow(Next)];
+                    true ->
+                        if Key > PredecessorId ->
+                                [Key | LoopOverflow(Next)];
+                            true ->
+                                Predecessor#node.pid ! {add_key, Key},
+                                LoopOverflow(Next)
+                        end
+                end;
+            [] ->
+                []
+        end
+    end,
+    
+    NewKeys = if PredecessorId < Id ->
+            LoopNormal(State#state.keys);
+        true ->
+            LoopOverflow(State#state.keys)
+    end,
+    io:format("Keys: ~p~n", [State#state.keys]),
+    io:format("NewKeys: ~p~n", [NewKeys]),
+    
+    NewKeys.
+
+
+get_current_node(State)->
+    CurrentNode = #node{id = State#state.id, non_hashed_id = State#state.non_hashed_id, pid = self()},
+    CurrentNode.        
 
 
 lookup_key(State, Key, Caller, Chain)->
