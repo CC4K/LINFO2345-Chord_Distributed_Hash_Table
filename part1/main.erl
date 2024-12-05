@@ -8,7 +8,36 @@
 -define(m, 16).
 -define(N, 100).
 
+main(_) -> 
+    application:start(crypto),
+    io:fwrite("~nstarting up control node...~n"),
 
+    Ids = lists:seq(0, ?N-1),
+    % manualy set Ids :
+    % Ids = [1,2,3,4,5,6,400,40808,32],
+    NodeCount = length(Ids),
+    
+    Nodes = node_utilities:create_nodes(Ids,?m),
+
+    File = csv:load_csv("keys.csv"),
+    HashedKeys = hash_ids(File, ?m),
+    Keys = lists:sort(HashedKeys),
+    
+    node_utilities:insert_keys(Nodes, Keys),
+    
+    InitialState = #{
+        nodes => Nodes,
+        keys => Keys
+    },
+
+    % creating directory accordingly to the number of nodes
+    NameDir = io_lib:format("dht_~p", [NodeCount]),
+    file:make_dir(NameDir),
+    % saving data in files
+    csv:create_csvs(Nodes, NameDir),
+
+    loop(InitialState),
+    io:fwrite("DONE~n", []).
 
 loop(State) -> 
     receive
@@ -26,41 +55,6 @@ handle_msg(Msg, From, State) ->
             io:format("Getting keys~n"),
             {ok, From} ! {ok, State}
     end.
-
-
-main(_) -> 
-    application:start(crypto),
-    io:fwrite("~nstarting up control node...~n"),
-
-    Ids = lists:seq(0, ?N-1),
-    Nodes = node_utilities:create_nodes(Ids,?m),
-
-    File = csv:load_csv("keys.csv"),
-    HashedKeys = hash_ids(File, ?m),
-    Keys = lists:sort(HashedKeys),
-    
-    node_utilities:insert_keys(Nodes, Keys),
-    
-    InitialState = #{
-        nodes => Nodes,
-        keys => Keys
-    },
-
-    % creating directory accordingly to the number of nodes
-    NameDir = io_lib:format("dht_~p", [?N]),
-    file:make_dir(NameDir),
-    % saving data in files
-    csv:create_csvs(Nodes, NameDir),
-
-    loop(InitialState),
-    io:fwrite("DONE~n", []).
-    
-
-
-
-
-
-
 
 update_state(Key, Value, State) -> 
     NewState = map:put(Key, Value, State),

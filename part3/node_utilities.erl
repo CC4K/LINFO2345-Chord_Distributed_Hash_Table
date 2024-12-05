@@ -47,6 +47,65 @@ set_node_predecessor(Nodes) ->
     LastNodePID = LastNode#node.pid,
     LastNodePID ! {set_successor, FirstNode}.
 
+
+
+add_node(Node, Nodes, M) ->
+    NormalId = Node,
+    HashedID = hd(main:hash_ids([Node], M)),
+    Pid = node:spawn_node(HashedID, NormalId,1 , self()),
+    NewNode = #node{id = HashedID, non_hashed_id = NormalId, pid = Pid},
+    InsertNode = fun InsertNode(NodesLeft) ->
+        case NodesLeft of
+            [] ->
+                [NewNode];
+            [CurrentNode | Rest] ->
+                if HashedID < CurrentNode#node.id ->
+                    [NewNode | NodesLeft];
+                true ->
+                    [CurrentNode | InsertNode(Rest)]
+                end
+        end
+    end,
+    
+    
+    NewNodeList = InsertNode(Nodes),
+    
+    {Predecessor, Successor} = get_neighbors(Nodes, NewNode),
+    
+    NewNode#node.pid ! {set_predecessor, Predecessor},
+    NewNode#node.pid ! {set_successor, Successor},
+
+    Predecessor#node.pid ! {set_successor, NewNode},
+    Successor#node.pid ! {set_predecessor, NewNode},
+
+    NewNodeList.
+
+get_neighbors(Nodes, NewNode) ->
+    GetNeighbors = fun GetNeighbors(NodesLeft,PreviousNode) ->
+        case NodesLeft of
+            [] ->
+                nil;
+            [CurrentNode | Rest] ->
+                if NewNode#node.id < CurrentNode#node.id ->
+                    {Predecessor, Successor} = {PreviousNode, CurrentNode},
+                    {Predecessor, Successor};
+                true ->
+                    GetNeighbors(Rest,CurrentNode)
+                end
+        end
+    end,
+    NeighBors = GetNeighbors(Nodes,last(Nodes)),
+    if NeighBors == nil ->
+            {last(Nodes), hd(Nodes)};
+        true ->
+            NeighBors
+    end.
+
+
+
+
+
+
 create_nodes(Ids,M,N) ->
     HashedIds = main:hash_ids(Ids, M),
     Normal_and_hashed_ids = lists:zip(Ids, HashedIds),

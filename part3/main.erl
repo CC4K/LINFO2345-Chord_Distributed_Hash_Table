@@ -66,7 +66,18 @@ main(_) ->
 
     [Node#node.pid ! {find_key, Key} || Node <- Nodes, Key <- KeyQueries],
 
-    loop(InitialState),
+
+    NewNodes = node_utilities:add_node(422, Nodes, ?m),
+    
+    io:fwrite("NewNodes: ~p~n", [NewNodes]),
+    
+    NewNodes2 = node_utilities:add_node(69, NewNodes, ?m),
+    NewNodes3 = node_utilities:add_node(19, NewNodes2, ?m),
+    NewNodes4 = node_utilities:add_node(893698, NewNodes3, ?m),
+
+    io:fwrite("NewNodes: ~p~n", [NewNodes4]),
+    
+loop(InitialState),
     io:fwrite("DONE~n", []).
 
 
