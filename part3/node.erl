@@ -118,7 +118,10 @@ transfer_keys_to_predecessor(State, Predecessor) ->
     end,
     io:format("Keys: ~p~n", [State#state.keys]),
     io:format("NewKeys: ~p~n", [NewKeys]),
-    
+
+    % Make CSV is called here since messages from node A to B are guaranteed to arrive in order
+    Predecessor#node.pid ! {make_csv, io_lib:format("dht_~p", [State#state.node_count])},
+
     NewKeys.
 
 

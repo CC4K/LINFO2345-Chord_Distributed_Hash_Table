@@ -67,7 +67,7 @@ main(_) ->
     [Node#node.pid ! {find_key, Key} || Node <- Nodes, Key <- KeyQueries],
 
 
-    NewNodes = node_utilities:add_node(422, Nodes, ?m),
+    NewNodes = node_utilities:add_node(422, Nodes, ?m, NodeCount),
     
     io:fwrite("NewNodes: ~p~n", [NewNodes]),
     
