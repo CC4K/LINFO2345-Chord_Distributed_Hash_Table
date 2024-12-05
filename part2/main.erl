@@ -63,7 +63,7 @@ main(_) ->
         end
     end,
 
-
+    io:fwrite("Nodes: ~p~n", [Nodes]),
     Second = A(Nodes,7),
     % Second#node.pid ! {lookup_key, Second#node.pid, last(Keys) ,[]},
     Second#node.pid ! {lookup_key, Second#node.pid, last(Keys) ,[]},

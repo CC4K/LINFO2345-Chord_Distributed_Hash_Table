@@ -59,47 +59,55 @@ lookup_key(State, Key, Caller, Chain)->
     CurrentNode = get_current_node(State),
     % CurrentId = CurrentNode#node.id,
     FingerTable = State#state.fingertable,
-    LookupKeyLoop = fun LookupKeyLoop(LastNode,NodesLeft)->
+    LookupKeyLoop = fun LookupKeyLoop(LastNode,NodesLeft,FirstJump)->
         case NodesLeft of
             [Head|Tail]->
                 if Head#node.id == LastNode#node.id ->
                     %^ EQUAL
-                    LookupKeyLoop(Head, Tail);
+                LookupKeyLoop(Head, Tail,0);
                 Head#node.id < LastNode#node.id ->
                         %^ OVERFLOW
                         CurrBigger = Head#node.id > Key,
                         LastSmaller = LastNode#node.id < Key,
                         if CurrBigger or LastSmaller ->
-                            LastNode;
+                            io:fwrite("OVERFLOW LastNode: ~p ~n", [LastNode#node.id]),
+                            {LastNode, FirstJump};
                         true ->
-                            LookupKeyLoop(Head,Tail)
-                        end;                            
-                true ->
+                            LookupKeyLoop(Head,Tail,0)
+                        end;
+                    true ->
+                        %^ NORMAL CASE
                         CurrBigger = Head#node.id > Key,
                         LastSmaller = LastNode#node.id < Key,
                         if CurrBigger and LastSmaller->
-                                LastNode;
-                        true ->
-                                LookupKeyLoop(Head,Tail)
+                            io:fwrite("NORMAL LastNode: ~p ~n", [LastNode#node.id]),
+                            {LastNode, FirstJump};
+                        true -> 
+                            LookupKeyLoop(Head,Tail,0)
                         end
                 end;
             []->
-                LastNode
+                io:fwrite("END LastNode: ~p ~n", [LastNode#node.id]),
+                {LastNode, FirstJump}
         end
     end,
-    io:fwrite("Current node: ~p Key: ~p~n", [CurrentNode, Key]),
+    io:fwrite("Current node: ~p Key: ~p ", [CurrentNode#node.id, Key]),
     
     % io:fwrite("finger table: ~p~n", [FingerTable]),
-    
-    ResultNode = LookupKeyLoop(hd(FingerTable),FingerTable),
-    IsSelf = ResultNode#node.id == CurrentNode#node.id,
-    First = hd(FingerTable),
-    IsNext = ResultNode#node.id == First#node.id,
-    io:fwrite("Result node: ~p~n", [ResultNode]),
-    if IsNext or IsSelf ->
-        Caller ! {found_key, Key, Chain ++ [CurrentNode]};
+    if CurrentNode#node.id == 65103 ->
+    io:fwrite("Finger table for node 65103: ~p~n", [FingerTable]);
     true ->
-            ResultNode#node.pid ! {lookup_key, Caller, Key, Chain ++ [CurrentNode]}
+        ok
+    end,
+
+
+
+    {ResultNode,FirstJump} = LookupKeyLoop(CurrentNode,FingerTable,1),
+
+    if FirstJump == 1 ->
+            Caller ! {found_key, Key, Chain ++ [CurrentNode|hd(FingerTable)]};
+        true ->
+        ResultNode#node.pid ! {lookup_key, Caller, Key, Chain ++ [CurrentNode]}
     end.
 add_key(Key, State) ->
     NewState = State#state{keys = [Key|State#state.keys]},

@@ -6,7 +6,7 @@
 -record(node, {id, non_hashed_id, pid}).
 
 -define(m, 16).
--define(N, 10).
+-define(N, 100).
 
 
 
