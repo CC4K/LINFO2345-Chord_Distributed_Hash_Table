@@ -40,14 +40,3 @@ Each node will create two CSV files named `node_number.csv` and `node_number_que
 The format of `node_number.csv` is as follows: `node_identifier,successor_identifier,predecessor_identifier|key1_identifier|key2_identifier|key3_identifier..`
 
 Format of `node_number_querries.csv` is as follows: `key_identifier,contacted_node_identifier1|contacted_node_identifier2|contacted_node_identifier3...`
-
-
-# Part 3
-
-For part 3 the makefile starts an erlang script, if the makefile isn't use type in `erl` instead of the escript command
-
-### Commands:
-- Start the service:`Pid = main:spawn_main().` 
-- Add a node: `Pid ! {add_node, NodeId}.`
-
-
