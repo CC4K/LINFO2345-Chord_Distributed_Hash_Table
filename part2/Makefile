@@ -2,7 +2,8 @@ build:
 	@erl -make
 
 run: build
-	erl
+	@erl
 
 clean:
-	rm -f *.beam
+	@rm -f *.beam
+	@echo "Directory cleaned up"

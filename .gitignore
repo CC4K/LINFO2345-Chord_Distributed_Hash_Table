@@ -19,5 +19,5 @@ deps
 _build/
 _checkouts/
 
-part1/test.erl
+test.erl
 /.vscode
