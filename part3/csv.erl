@@ -66,7 +66,7 @@ create_queries_csv(State, NameDir) ->
     %     Line = GetLine(Key, Path),
     %     FileLine = [Line|FileLine]
     % end, KeysPath#keys_path.keys_path),
-
+    
     Data = string:join(FileLine, ""),
     FileName = io_lib:format("./~s/~p_queries.csv", [NameDir, State#state.non_hashed_id]),
     {ok, File} = file:open(FileName, [write]),

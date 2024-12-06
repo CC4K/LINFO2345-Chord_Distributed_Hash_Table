@@ -60,10 +60,6 @@ start(Ids) ->
     file:make_dir(NameDir),
     csv:create_csvs(Nodes, NameDir),
 
-    io:fwrite("name_dir: ~p~n", [NameDir]),
-
-    
-
     InitialState = #state{
         nodes = Nodes,
         name_dir = NameDir
@@ -71,8 +67,6 @@ start(Ids) ->
 
     loop(InitialState),
     io:fwrite("DONE~n", []).
-
-
 
 handle_msg(Msg, From, State) -> 
     case Msg of 

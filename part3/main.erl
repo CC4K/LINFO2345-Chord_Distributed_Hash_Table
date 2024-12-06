@@ -24,11 +24,15 @@ loop(State) ->
         print_nodes ->
             io:format("Nodes: ~p~n", [State#state.nodes]),
             loop(State);
+        query_keys ->
+            KeyQueriesCSV = csv:load_csv("key_queries.csv"),
+            KeyQueries = hash_ids(KeyQueriesCSV, ?m),
+            [Node#node.pid ! {find_key, Key} || Node <- State#state.nodes, Key <- KeyQueries],
+            loop(State);
         stop -> 
             io:format("Stopping loop~n"),
             ok
     end.
-
 
 spawn_main() ->
     Pid = spawn(fun() -> main([]) end),
@@ -77,8 +81,6 @@ start(Ids) ->
     % NewNodes = node_utilities:add_node(422, Nodes, ?m, NodeCount),
     NewNodes = Nodes,
     
-    io:fwrite("aAAAAAAAA~p~n",[NodeCount]),
-    
     % -record(state, {nodes, name_dir, original_node_count}).
 
     InitialState = #state{
@@ -87,9 +89,6 @@ start(Ids) ->
         original_node_count = NodeCount
     },
 
-
-    io:fwrite("BBBBBBBBBBBBBB~n"),
-    
     loop(InitialState),
     io:fwrite("DONE~n", []).
 

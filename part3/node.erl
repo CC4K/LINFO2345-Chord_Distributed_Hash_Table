@@ -13,18 +13,15 @@ spawn_node(Id, NonHashedID, NodeCount, Main) ->
 loop(State) ->
     receive
         {add_key, Key} ->
-            % io:format("Node ~p: Added key ~p~n", [State#state.id, Key]),
             NewState = add_key(Key,State),
             loop(NewState);
         {make_csv, NameDir} ->
             csv:create_node_csv(State, NameDir),
-            % io:format("~p.csv created~n", [State#state.non_hashed_id]),
             loop(State);
         {make_queries_csv, NameDir} ->
             csv:create_queries_csv(State, NameDir),
             loop(State);
         {set_predecessor, Predecessor} ->
-            % io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, Predecessor, State#state.successor]),
             if State#state.predecessor == nil ->
                     NewState = State#state{predecessor = Predecessor},
                     loop(NewState);
@@ -34,12 +31,11 @@ loop(State) ->
                     loop(NewState)
             end;
         {set_successor, Successor} ->
-            % io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, State#state.predecessor, Successor]),
             NewState = State#state{successor = Successor},
             loop(NewState);
         {set_finger_table, FingerTable} ->
-            NewState = State#state{fingertable = FingerTable},
-            % io:format("Node: ~p finger table: ~p~n", [State#state.id, FingerTable]),
+            KeysPath = #keys_path{keys_path = [], keys_left_to_find = 0},
+            NewState = State#state{fingertable = FingerTable, keys_path = KeysPath},
             loop(NewState);
         {find_key,Key} ->
             case own_key(State, Key) of

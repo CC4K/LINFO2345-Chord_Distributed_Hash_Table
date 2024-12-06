@@ -47,12 +47,10 @@ set_node_predecessor(Nodes) ->
     LastNodePID = LastNode#node.pid,
     LastNodePID ! {set_successor, FirstNode}.
 
-
-
 add_node(Node, Nodes, M, BaseN) ->
     NormalId = Node,
     HashedID = hd(main:hash_ids([Node], M)),
-    Pid = node:spawn_node(HashedID, NormalId,1 , self()),
+    Pid = node:spawn_node(HashedID, NormalId, BaseN , self()),
     NewNode = #node{id = HashedID, non_hashed_id = NormalId, pid = Pid},
     InsertNode = fun InsertNode(NodesLeft) ->
         case NodesLeft of
@@ -66,7 +64,6 @@ add_node(Node, Nodes, M, BaseN) ->
                 end
         end
     end,
-    
     
     NewNodeList = InsertNode(Nodes),
     

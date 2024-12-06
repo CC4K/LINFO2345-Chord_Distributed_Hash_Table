@@ -17,6 +17,11 @@ loop(State) ->
             node_utilities:insert_keys(State#state.nodes,HashedKeys),
             csv:create_csvs(State#state.nodes, State#state.name_dir),
             loop(State);
+        query_keys ->
+            KeyQueriesCSV = csv:load_csv("key_queries.csv"),
+            KeyQueries = hash_ids(KeyQueriesCSV, ?m),
+            [Node#node.pid ! {find_key, Key} || Node <- State#state.nodes, Key <- KeyQueries],
+            loop(State);
         stop -> 
             io:format("Stopping loop~n"),
             ok
