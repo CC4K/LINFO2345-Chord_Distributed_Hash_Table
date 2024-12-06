@@ -48,9 +48,6 @@ start(Ids) ->
     application:start(crypto),
     io:fwrite("~nstarting up control node...~n"),
 
-    Ids = lists:seq(0, ?N-1),
-    % manualy set Ids :
-    % Ids = [1,2,3,4,5,6,400,40808,32],
     NodeCount = length(Ids),
 
     Nodes = node_utilities:create_nodes(Ids,?m,NodeCount),
@@ -78,10 +75,9 @@ start(Ids) ->
 
     [Node#node.pid ! {find_key, Key} || Node <- Nodes, Key <- KeyQueries],
 
+    %  Code to manually add a node from inside of the program:
     % NewNodes = node_utilities:add_node(422, Nodes, ?m, NodeCount),
     NewNodes = Nodes,
-    
-    % -record(state, {nodes, name_dir, original_node_count}).
 
     InitialState = #state{
         nodes = NewNodes,

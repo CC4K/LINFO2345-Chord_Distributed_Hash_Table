@@ -12,19 +12,15 @@ spawn_node(Id, NonHashedID, Main) ->
 loop(State) ->
     receive
         {add_key, Key} ->
-            % io:format("Node ~p: Added key ~p~n", [State#state.id, Key]),
             NewState = add_key(Key, State),
             loop(NewState);
         {make_csv, NameDir} ->
             csv:create_node_csv(State, NameDir),
-            % io:format("~p.csv created~n", [State#state.non_hashed_id]),
             loop(State);
         {set_predecessor, Predecessor} ->
-            % io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, Predecessor, State#state.successor]),
             NewState = State#state{predecessor = Predecessor},
             loop(NewState);
         {set_successor, Successor} ->
-            % io:format("Node: ~p predecessor: ~p successor: ~p~n", [State#state.id, State#state.predecessor, Successor]),
             NewState = State#state{successor = Successor},
             loop(NewState);
         {print} ->

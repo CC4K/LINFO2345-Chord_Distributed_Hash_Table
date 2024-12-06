@@ -29,7 +29,6 @@ create_finger_tables_loop(NodesLeft,AllNodes,M)->
             IndexTable = fingertable_values(Head,M),
             FingerTable = lists:map(fun(Value) -> GetNext(Value, AllNodes) end, IndexTable),
             Head#node.pid ! {set_finger_table, FingerTable},
-            % io:format("Finger table for ~p: ~p~n", [Head#node.non_hashed_id, FingerTable]),
             create_finger_tables_loop(Next,AllNodes,M)
     end.
 

@@ -139,7 +139,6 @@ insert_keys(Nodes, Keys) ->
                         KeysLeft
                 end;
             [] -> 
-                io:fwrite("inserted_all_keys~n"),
                 nil
         end
     end,
