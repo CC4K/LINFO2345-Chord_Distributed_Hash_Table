@@ -32,8 +32,6 @@ loop(State) ->
             loop(State)
     end.
 
-
-
 add_key(Key, State) ->
     NewState = State#state{keys = [Key|State#state.keys]},
     NewState.

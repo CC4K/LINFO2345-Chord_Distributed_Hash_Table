@@ -24,7 +24,6 @@ spawn_nodes(Ids,NodeCount) ->
     set_node_predecessor(Nodes),
     Nodes.
 
-
 set_node_predecessor(Nodes) -> 
     SetNodePredecessorRecursive = fun SetNodePredecessorRecursive(NodesLeft, Predecessor) -> 
         case NodesLeft of

@@ -4,31 +4,22 @@
 -import(lists,[last/1]).
 
 -record(node, {id, non_hashed_id, pid}).
+-record(state, {nodes, name_dir}).
 
 -define(m, 16). %Number of bits in the hash & max entries in finger table
--define(N, 6). %Number of nodes in the ring
-
-
+-define(N, 10). %Number of nodes in the ring
 
 loop(State) -> 
     receive
-        {Msg, From} -> 
-            Next_State = handle_msg(Msg, From, State),
-            loop(Next_State);
-        % {done, From} -> 
-        %     NameDir = io_lib:format("dht_~p", [?N]),
-        %     csv:create_csvs(From, NameDir),
-        %     loop(State);
+        {add_keys, Keys} ->
+            io:format("Adding keys~n"),
+            HashedKeys = hash_ids(Keys, ?m),
+            node_utilities:insert_keys(State#state.nodes,HashedKeys),
+            csv:create_csvs(State#state.nodes, State#state.name_dir),
+            loop(State);
         stop -> 
             io:format("Stopping loop~n"),
             ok
-    end.
-
-handle_msg(Msg, From, State) -> 
-    case Msg of 
-        {get_keys, From} -> 
-            io:format("Getting keys~n"),
-            {ok, From} ! {ok, State}
     end.
 
 spawn_main() ->
@@ -36,12 +27,15 @@ spawn_main() ->
     Pid.
 
 main(_) -> 
-    application:start(crypto),
-    io:fwrite("~nstarting up control node...~n"),
-
     Ids = lists:seq(0, ?N-1),
     % manualy set Ids :
     % Ids = [1,2,3,4,5,6,400,40808,32],
+    start(Ids).
+    
+start(Ids) -> 
+    application:start(crypto),
+    io:fwrite("~nstarting up control node...~n"),
+
     NodeCount = length(Ids),
 
     Nodes = node_utilities:create_nodes(Ids,?m,NodeCount),
@@ -53,23 +47,28 @@ main(_) ->
 
     node_utilities:insert_keys(Nodes, Keys),
     
-    InitialState = #{
-        nodes => Nodes,
-        keys => Keys
-    },
+
+
     % creating directory accordingly to the number of nodes
     NameDir = io_lib:format("dht_~p", [NodeCount]),
+    case filelib:is_dir(NameDir) of
+        true ->
+            file:del_dir_r(NameDir);
+        false ->
+            ok
+    end,
     file:make_dir(NameDir),
-    % saving data in files
     csv:create_csvs(Nodes, NameDir),
-
-    io:fwrite("Nodes: ~p~n", [Nodes]),
 
     KeyQueriesCSV = csv:load_csv("key_queries.csv"),
     KeyQueries = hash_ids(KeyQueriesCSV, ?m),
 
     [Node#node.pid ! {find_key, Key} || Node <- Nodes, Key <- KeyQueries],
 
+    InitialState = #state{
+        nodes = Nodes,
+        name_dir = NameDir
+    },
     loop(InitialState),
     io:fwrite("DONE~n", []).
 

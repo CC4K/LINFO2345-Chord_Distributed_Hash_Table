@@ -24,3 +24,17 @@ Now the project should be running, use `ctrl+c` to stop the process.
 ### Keys
 - Keys are stored in keys.csv
 - Key queries are stored in key_queries.csv
+
+
+# Part 2
+
+
+
+
+# Part 3
+
+For part 3 the makefile starts an erlang script, if the makefile isn't use type in `erl` instead of the escript command
+
+### Commands:
+- Start the service:`Pid = main:spawn_main().` 
+- Add a node: `Pid ! {add_node, NodeId}.`
