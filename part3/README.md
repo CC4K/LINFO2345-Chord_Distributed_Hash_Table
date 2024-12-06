@@ -27,13 +27,14 @@ Now the project should be running, use `ctrl+c` to stop the process.
 - Keys are stored in keys.csv
 - Keys can be added while the program is running by using the command: `Pid ! {add_keys, [1,2,4,31,3,45234,42334,98,1691]}.` (the list of integers can be set to whichever values you want)
 
-### Queries
-- Key queries are stored in `key_queries.csv`
-- Key queries can be changed during execution and new queries can be made by typing: `Pid ! query_keys.` and all queries from `key_queries.csv` will be added to the CSV outputs.
-
 ### Adding a node manually
 - To add a node during execution type in a command such as: `Pid ! {add_node, 30}.`  where 30 is the node that is being added.
 - To see the list of all nodes in the DHT ring use the command: `Pid ! print_nodes.`, the command will return a list in this format: `{node,<node_identifier>,<node_number>,<node_pid>}`
+
+
+### Queries
+- Key queries are stored in `key_queries.csv`
+- Key queries can be changed during execution and new queries can be made by typing: `Pid ! query_keys.` and all queries from `key_queries.csv` will be added to the CSV outputs.
 
 # Reading outputs
 The outputs are CSV files store in `dht_N` where N is the amount of nodes in the DHT circle.
